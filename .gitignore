@@ -1,0 +1,11 @@
+# Generated build artifacts
+*.bsp
+*.vmf
+*.log
+*.prt
+*.vmt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo

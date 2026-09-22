@@ -1,0 +1,40 @@
+mapname="testchb_01_button";
+
+material{
+	floor["concrete/concrete_modular_floor001a"];
+	ceiling["concrete/concrete_modular_ceiling001a"];
+	wall["plastic/plasticwall001b"];
+};
+
+##* hello this is a Long comment
+which
+goes
+on
+and
+on
+*##
+
+chamber{
+	sizex["1024"];
+	sizey["512"];
+	sizez["1024"];
+	player["512, 512, 64"];
+	gun["560, 512, 64"];
+};
+## this is a short comment
+lighting{
+	light_01[pos="300, 500, 380",power="255",color="255, 255, 200"];
+	light_floor_03[pos="700, 500, 380"];
+};
+
+buttons{
+	door_btn[pos="420, 700, 0"];
+};
+
+doors{
+	door_01[pos="512, 990, 0"];
+}; 
+
+wiring{
+	wire["door_btn.OnPressed", "door_01.Open", delay="2"]; ## delay in seconds
+};
