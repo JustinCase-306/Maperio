@@ -1,20 +1,26 @@
 # VMFScript
 
-Minispielparser: übersetzt die **VMFScript-3.0-Block-Sprache** eins-zu-eins in eine
-fertige **Portal-1**.vmf (Source/HL2-Engine) und optional direkt weiter mit dem
-Portal-1-`vbsp` zu einer `.bsp`.
+A small compiler that translates the **VMFScript 3.0 block language** one-to-one
+into a ready **Portal 1** `.vmf` file (Source/HL2 engine) and, optionally, runs
+the Portal 1 `vbsp` on top to produce a playable `.bsp`.
 
-Entstanden für den deutschen Portal-1-Mapper, der nicht mehr lange, zeilenweise
-VMF von Hand tippen will, sondern in Blöcken/Schlüssel-Wert-Code denkt.
+Little mini-syntax designed for Portal-1 mappers who don't want to hand-type
+long, line-by-line VMF — instead they think in blocks / key-value code.
 
-## Schnellstart
+> **Authorship.** The **compiler implementation** (`scripts/`), this README, and
+> the example `.vms`/`.pml` files were **written by Hermes**, an AI coding agent
+> (Nous Research), working for the repository owner. The **VMFScript 3.0
+> language itself** (`syntax/vmfscript3.0.txt`) is the owner's own specification,
+> which the compiler implements one-to-one.
+
+## Quickstart
 
 ```bash
 python scripts/vmfs3_compile.py examples/test3.vms            # -> testchb_01_button.vmf
-python scripts/vmfs3_compile.py examples/test3.vms --compile  # + Portal-1-vbsp (bsp)
+python scripts/vmfs3_compile.py examples/test3.vms --compile  # + Portal-1 vbsp (.bsp)
 ```
 
-## VMFScript 3.0 Syntax (verbindlich, Quelle `syntax/vmfscript3.0.txt`)
+## VMFScript 3.0 syntax (mandatory, source `syntax/vmfscript3.0.txt`)
 
 ```python
 mapname="testchb_01_button";
@@ -43,34 +49,36 @@ wiring{
 };
 ```
 
-Blöcke: `name { ... };` | Zeilen: `label["..."];` oder `label[key="val", key2="val"];`
-| Werte in Anführungszeichen | Kommentare: `##` kurz, `##* ... *##` lang | `wire`:
-5-Feld-ESC mit `delay` im Argument-Feld.
+Rules: blocks are `name { ... };` | lines are `label["..."];` or
+`label[key="val", key2="val"];` | values are quoted | comments are `##` (short)
+and `##* ... *##` (long) | `wire` uses the 5-field ESC form with `delay` in the
+argument field.
 
-## Struktur
+## Layout
 
 ```
 scripts/
-  vmfs3_compile.py            # Compiler 3.0 (komplett, Block-Parser + Map-Aufrufe)
-  generate_plain_portal_map.py# Map-Klasse: Winding, Solids, entity(), render()
-  portalmap.py                # VMFScript 1.0 (ESC-Trenner)
-  portalmap2.py               # VMFScript 2.0 (ESC+Komma, mehr Mechaniken)
-examples/                     # .vms + .pml Beispiele
-syntax/                       # vmfscript3.0.txt (Nutzer-Spezifikation) + Übergabe
+  vmfs3_compile.py            # Compiler 3.0 (complete: block parser + map calls)
+  generate_plain_portal_map.py# Map class: winding, solids, entity(), render()
+  portalmap.py                # VMFScript 1.0 (ESC separator)
+  portalmap2.py               # VMFScript 2.0 (ESC + comma, more mechanics)
+examples/                     # .vms + .pml examples
+syntax/                       # vmfscript3.0.txt (owner spec) + handover notes
 ```
 
-## Wichtig: nur Portal 1 kompilieren
+## Important: compile with Portal 1 only
 
 ```bash
 "C:\Program Files (x86)\Steam\steamapps\common\Portal\bin\vbsp.exe" \
   -game "C:\Program Files (x86)\Steam\steamapps\common\Portal\portal" meine.vmf
 ```
 
-NIE den Portal-2-Compiler (`Portal 2\bin\vbsp.exe`) — der bricht mit Returncode
-`0x1` ab. Einfache Maps brauchen keinen `env_cubemap`, nur `sky_black_nofog` +
-`light`-Entities + Spawn/Portalgun.
+Never use the Portal 2 compiler (`Portal 2\bin\vbsp.exe`) — it aborts with return
+code `0x1`. Simple maps need no `env_cubemap`, just `sky_black_nofog` +
+`light` entities + spawn / portalgun.
 
 ## Status
-Compiler `vmfs3_compile.py` + `test3.vms` verifiziert: `.vms` → `.vmf` →
-Portal-1-`vbsp` → `.bsp` (EXIT 0). `delay` steht im Argument-Feld der
-Verbindung — in Hammer zu prüfen, ob die Ziel-Methode einen Verzögerungsparameter nimmt.
+
+Compiler `vmfs3_compile.py` + `test3.vms` verified: `.vms` → `.vmf` → Portal 1
+`vbsp` → `.bsp` (exit 0). `delay` lives in the connection's argument field —
+check in Hammer whether the target method takes a delay parameter.
