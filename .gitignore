@@ -1,9 +1,14 @@
 # Generated build artifacts
 *.bsp
-*.vmf
 *.log
 *.prt
 *.vmt
+
+# Compiler output next to the .vms source
+/probe_blocks.vmf
+/test_chamber_two.vmf
+/test_floor_button_door.vmf
+/test4_multi_chamber.vmf
 
 # Python
 __pycache__/
