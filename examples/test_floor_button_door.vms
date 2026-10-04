@@ -1,0 +1,44 @@
+## VMFScript 5.0 - Beispiel: Bodenbutton -> Testkammertuer
+## Nachgebaut den Entities aus map_ref.vmf / door_ref_01.vmf
+## Entities-only: die Geometrie kommt aus Hammer (oder --testroom).
+##
+## WICHTIG zu den Positionen: sie sind Weltkoordinaten. Ohne --testroom
+## musst du sie an deine Hammer-Geometrie anpassen. Mit --testroom
+## liegt der Raum bei 0..1024 / 0..1024 / 0..512.
+
+mapname = "test_floor_button_door";
+
+##--- Spielstart: Compiler setzt zusaetzlich den Portalgun daneben ---
+start{
+  player["Start", pos="256 512 64", yaw="90"];
+}
+
+##--- Licht: light_environment verhindert die schwarze Map ---
+envlight{
+  amb1[pos="512 512 400", power="200", ambient="30"];
+}
+lighting{
+  ## Referenz map_ref.vmf: light1 hatte _light "255 255 255 350"
+  light_01[pos="256 256 400", power="350"];
+  light_02[pos="768 768 400", power="350"];
+}
+
+##--- Tuer: prop_testchamber_door (P2-Standard mit Durchgang) ---
+## Referenz door_ref_01.vmf: origin "0 2 -64", angles "0 270 0"
+door{
+  door1["Testkammertuer", pos="512 1008 0", yaw="270"];
+}
+
+##--- Button: prop_floor_button (Bodenbutton) ---
+button{
+  btn["Druecke mich", pos="512 800 8", yaw="0",
+       type="prop_floor_button"];
+}
+
+##--- Verdrahtung ---
+## 5-Feld-ESC: Ziel, Input, Parameter, Delay, -1
+## Referenz map_ref.vmf: "OnPressed" "Door1\x1bOpen\x1b\x1b0.5\x1b-1"
+wiring{
+  wire["btn.OnPressed",   "door1.Open",  delay="0.5"];
+  wire["btn.OnUnPressed", "door1.Close", delay="1"];
+}

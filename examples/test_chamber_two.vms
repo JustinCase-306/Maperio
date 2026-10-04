@@ -1,0 +1,51 @@
+## VMFScript 5.0 - Testkammer: zwei Kammern mit Tuer im Durchgang
+## Ganze Geometrie in der Sprache: layout baut die Kammern, Entities
+## werden darauf gesetzt.
+
+mapname = "test_chamber_two";
+
+##* Geometrie: zwei Kammern 512x512x256 entlang +Y, verbunden durch
+##* eine Wand mit Offnung (64 breit, 96 hoch, vom Boden aus).
+##* Eine Offnung braucht SOLID-Massen auf beiden Seiten - deshalb zwei
+##* Kammern statt einer Kammer mit Durchgang.
+layout{
+  chambers["2", width="512", length="512", height="256",
+           door_width="64", door_height="96", origin="0 0 0"];
+}
+
+##* Kammer-Mittelpunkte: Kammer 0 bei y=256, Kammer 1 bei y=768.
+##* Die Trennwand liegt bei y 510..512, der Durchgang bei x 224..288,
+##* z 0..96.
+
+##--- Spielstart: Kammer 0, Portalgun daneben ---
+start{
+  player["Start", pos="256 256 8", yaw="0"];
+}
+
+##--- Licht: light_environment + je ein Licht pro Kammer ---
+envlight{
+  amb1[pos="256 256 240", power="200", ambient="30"];
+}
+lighting{
+  light_01[pos="256 256 192", power="350"];
+  light_02[pos="256 768 192", power="350"];
+}
+
+##--- Tuer im Durchgang ---
+## WICHTIG: prop_testchamber_door ist 128 hoch (Original-Panel) und die
+## "origin" zeigt auf die UNTERKANTE, nicht auf die Mitte - so steht die
+## Tuer auf dem Boden. Die Wand ist bei y 510..512, also y=511.
+door{
+  door1["Testkammertuer", pos="256 511 0", yaw="270"];
+}
+
+##--- Bodenbutton vor der Tuer, in Kammer 0 ---
+button{
+  btn1["Druecke mich", pos="256 420 0", yaw="0", type="prop_floor_button"];
+}
+
+##--- Verdrahtung: Druck oeffnet, Loslassen schliesst ---
+wiring{
+  wire["btn1.OnPressed",   "door1.Open",  delay="0.5"];
+  wire["btn1.OnUnPressed", "door1.Close", delay="1"];
+}

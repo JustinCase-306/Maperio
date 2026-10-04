@@ -1,0 +1,49 @@
+## VMFScript 5.0 - konvertiert aus 4.0
+## Konvertiert von scripts/vmfs4_to_vms.py (Hermes).
+## Quelle enthielt 3 Kammer(n).
+##
+## Achtung - nicht 1:1 uebertragbar, bitte pruefen:
+##   material{}: P1-Materialien verworfen (P2 hat eigene, z. B. TILE/WHITE_WALL_TILE003B)
+##   door_01: 4.0 gibt keine pos= fuer Tueren -> Trennwand-Position 512 512 64 gesetzt (in Hammer pruefen)
+##   door_02: 4.0 gibt keine pos= fuer Tueren -> Trennwand-Position 512 1024 64 gesetzt (in Hammer pruefen)
+##   rotator: 4.0-rotator -> func_rotating (P2); axis/speed sind nicht 1:1 uebertragbar, bitte in Hammer pruefen
+
+mapname = "test4_multi_chamber";
+
+layout{
+  chambers["3", width="1024", length="512", height="1024",
+           door_width="64", door_height="96"];
+}
+
+start{
+player["player", pos="512 256 64", nogun="0"];
+portalgun["portalgun", gun="1", pos="576 256 64"];
+}
+
+lighting{
+  light_01["light_01", pos="512 256 750", power="255", color="255 255 200"];
+  light_01_02["light_01_02", pos="512 768 750", power="200"];
+  light_01_03["light_01_03", pos="512 1280 750", power="200"];
+}
+
+door{
+door_01["door_01", pos="512 512 64", yaw="270", type="prop_testchamber_door"];
+door_02["door_02", pos="512 1024 64", yaw="270", type="prop_testchamber_door"];
+}
+
+button{
+btn_open["btn_open", pos="256 128 0", type="prop_floor_button"];
+}
+
+prop{
+prop["prop", pos="200 912 64", model="models/props/sign_frame01/sign_frame01.mdl"];
+}
+
+rotator{
+rotator["rotator", pos="400 1280 128", speed="20"];
+}
+
+wiring{
+  wire["btn_open.OnPressed", "door_01.Open", param="", delay="0"];
+}
+

@@ -1,0 +1,133 @@
+## VMFScript 5.0 - aus Portal-2-VMF zurueckuebersetzt
+## Quelle: C:\Users\Friedrich\Documents\Portfolio\Hammer\Portal 2 Maps\vmfscript\map_ref.vmf
+## Geometrie: 49 Brush(es) als solid{}-Blocke enthalten.
+##
+## Verwaiste Verbindungen, die die Sprache nicht kennt
+## (Ziel-Entity nicht uebersetzbar) - NICHT enthalten:
+##   button1.OnPressed -> indicator_sign_texturetoggle (Ziel nicht in der Sprache)
+##   button1.OnUnPressed -> indicator_sign_texturetoggle (Ziel nicht in der Sprache)
+##   button1.OnPressed -> indicator_lights_texturetoggle (Ziel nicht in der Sprache)
+##   button1.OnUnPressed -> indicator_lights_texturetoggle (Ziel nicht in der Sprache)
+##
+## Verbindungen einer Entity OHNE targetname.
+## Sie sind im Original wirkungslos (kein Adressat) und
+## deshalb hier nicht enthalten - die Entity traegt noname="1":
+##   prop_button(ohne targetname).OnPressed -> Door1.Open
+##   prop_button(ohne targetname).OnButtonReset -> door1.Lock
+##
+## Doppelte targetnames im Original (Befund der Quelle):
+## Zwei Entities mit demselben Namen sind nicht getrennt
+## ansprechbar. Das zweite Entity traegt dub="1":
+##   light: "light6" und "light6_02" teilen sich den Namen (Nr. 1)
+##
+## Nicht uebersetzte Entities:
+##   env_texturetoggle x2
+##   info_overlay x5
+##   prop_static x1
+
+mapname = "map_ref";
+
+layout{
+  geom["importiert", chambers="0",
+        width="176", length="32", height="128",
+        origin="-512 -192 64"];
+}
+
+##* Geometrie aus der importierten VMF (Brush-BBoxes).
+##* Nicht axis-parallele Brushes werden zu Quader
+##* vergroessert - fuer exakte Form Hammer nutzen.
+solid{
+  brush_01["-369 -197 128", "-337 -196 160", mat="SIGNAGE/SIGNAGE_DOORSTATE"];
+  brush_02["-436 -162 165", "-424 -160 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_03["-391 -192 86", "-384 -190 97", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_04["-388 -162 109", "-384 -160 121", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_05["-436 -192 165", "-424 -190 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_06["-512 -192 109", "-508 -190 121", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_07["-512 -162 109", "-508 -160 121", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_08["-388 -162 97", "-384 -160 109", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_09["-424 -192 160", "-414 -190 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_10["-512 -162 86", "-505 -160 97", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_11["-448 -192 169", "-436 -190 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_12["-512 -192 64", "-488.999 -190 75", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_13["-407.004 -162 143", "-384 -160 192.004", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_14["-388 -192 109", "-384 -190 121", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_15["-512 -162 132", "-499 -160 143", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_16["-512 -192 86", "-505 -190 97", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_17["-397 -192 132", "-384 -190 143", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_18["-512 -192 132", "-499 -190 143", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_19["-512 -162 143", "-489 -160 192.004", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_20["-460 -162 169", "-448 -160 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_21["-482 -192 159.999", "-472 -190 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_22["-414 -162 153.999", "-383.998 -160 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_23["-397 -192 75", "-384 -190 86", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_24["-512 -192 75", "-499 -190 86", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_25["-407.004 -192 64", "-384 -190 75", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_26["-397 -162 75", "-384 -160 86", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_27["-414 -192 153.999", "-383.998 -190 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_28["-472 -162 165", "-460 -160 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_29["-512 -192 97", "-508 -190 109", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_30["-482 -162 159.999", "-472 -160 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_31["-512 -162 75", "-499 -160 86", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_32["-407.004 -162 64", "-384 -160 75", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_33["-391 -162 86", "-384 -160 97", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_34["-407.004 -192 143", "-384 -190 192.004", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_35["-512.002 -192 153.999", "-482 -190 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_36["-448 -162 169", "-436 -160 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_37["-512 -162 64", "-488.999 -160 75", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_38["-472 -192 165", "-460 -190 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_39["-512 -192 121", "-504.999 -190 132", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_40["-460 -192 169", "-448 -190 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_41["-512 -162 121", "-504.999 -160 132", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_42["-512 -162 97", "-508 -160 109", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_43["-391 -162 121", "-384 -160 132", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_44["-512.002 -162 153.999", "-482 -160 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_45["-388 -192 97", "-384 -190 109", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_46["-512 -192 143", "-489 -190 192.004", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_47["-424 -162 160", "-414 -160 192", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_48["-397 -162 132", "-384 -160 143", mat="TILE/WHITE_WALL_TILE003B"];
+  brush_49["-391 -192 121", "-384 -190 132", mat="TILE/WHITE_WALL_TILE003B"];
+}
+
+start{
+  portalgun["portalgun", gun="1", pos="-108 576 100", yaw="0", fire1="1", fire2="1"];
+  player["player", pos="-95.8424 -320.221 65", yaw="90", nogun="1"];
+}
+
+lighting{
+  light6["light6", pos="-88 634 168", power="150"];
+  light6_02["light6_02", pos="-92 134 104", dub="1", power="50", color="255 19 19"];
+  light4["light4", pos="-352 432 184", power="300"];
+  light3["light3", pos="-352 216 184", power="300"];
+  light5["light5", pos="-352 616 184", power="300"];
+  light7["light7", pos="-88 428 168", power="150"];
+  light1["light1", pos="-184 -336 192", power="350"];
+}
+
+door{
+  Door2["Door2", pos="-208 292 64", yaw="180", type="prop_dynamic", model="models/props_underground/underground_door_dynamic.mdl"];
+  door1["door1", pos="-448 -176 64", yaw="270", type="prop_testchamber_door"];
+}
+
+button{
+  Door2_button["Door2_button", pos="-212 292 120", type="func_button", spawnflags="1024", speed="5", wait="3"];
+  btn["btn", pos="-278.434 -80.997 65.2551", noname="1", yaw="178", type="prop_button"];
+  button1["button1", pos="-228.9 -340.286 72.3584", yaw="0", type="prop_floor_button"];
+}
+
+cube{
+  cube1["cube1", pos="-144 -272 83.0335", yaw="342.5", paintpower="4"];
+}
+
+turret{
+  turret1["turret1", pos="-92 110 64", yaw="89.5", type="npc_portal_turret_floor", range="1024"];
+}
+
+wiring{
+  wire["turret1.OnDeploy", "turret1.FireBullet", param="", delay="0"];
+  wire["turret1.OnTipped", "light6_02.TurnOff", param="", delay="0"];
+  wire["Door2_button.OnPressed", "Door2.SetAnimation", param="Open", delay="0"];
+  wire["Door2_button.OnPressed", "Door2_button.Kill", param="", delay="0"];
+  wire["button1.OnPressed", "door1.Open", param="", delay="0.5"];
+  wire["button1.OnUnPressed", "door1.Close", param="", delay="1"];
+}
+

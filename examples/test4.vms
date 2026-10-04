@@ -1,0 +1,51 @@
+mapname="test4_multi_chamber";
+
+##* VMFScript 4.0 Beispiel: drei Kammern als Kette entlang +X,
+##   verbunden durch Tuer-Durchgaenge (Wand mit Luecke + prop_testchamber_door).
+##   Kammer 1 hat den Schalter, der die Tuer zu Kammer 2 oeffnet.
+*##
+
+layout{
+	axis["x"];
+	passage["256"];
+	doorheight["512"];
+};
+
+material{
+	floor["concrete/concrete_modular_floor001a"];
+	ceiling["concrete/concrete_modular_ceiling001a"];
+	wall["plastic/plasticwall001b"];
+};
+
+chamber_00{
+	sizex["1024"];
+	sizey["512"];
+	sizez["1024"];
+	player["512, 256, 64"];
+	gun["576, 256, 64"];
+	light_01[pos="512, 256, 750", power="255", color="255, 255, 200"];
+	button["btn_open", pos="256, 128, 0"];
+	door["door_01"];
+};
+
+chamber_01{
+	sizex["1024"];
+	sizey["512"];
+	sizez["1024"];
+	light_01[pos="512, 256, 750", power="200"];
+	prop["sign", model="models/props/sign_frame01/sign_frame01.mdl",
+	      pos="200, 400, 64"];
+	door["door_02"];
+};
+
+chamber_02{
+	sizex["1024"];
+	sizey["512"];
+	sizez["1024"];
+	light_01[pos="512, 256, 750", power="200"];
+	rotator["spin", pos="400, 256, 128", axis="0 0 1", speed="20"];
+};
+
+wiring{
+	wire["btn_open.OnPressed", "door_01.Open", delay="0"];
+};

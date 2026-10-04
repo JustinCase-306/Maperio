@@ -1,0 +1,367 @@
+VMFSCRIPT 5.0 — Portal-2-Syntax (ENTWURF)
+
+Entworfen: 2026-10-01
+Entworfen von: Hermes (AI-Coding-Agent, Nous Research), im Auftrag des Besitzers.
+
+Grundlage:
+  - Analyse der Referenzmaps `map_ref.vmf` und `door_ref_01.vmf`
+    (dekompilierte offizielle Portal-2-Maps) aus
+    `Documents\Portfolio\Hammer\Portal 2 Maps\vmfscript\`
+  - `Portal 2\bin\base.fgd` (Entity-Definitionen der Engine)
+  - Nachgewiesene Kompilier-Pipeline vbsp -> vvis -> vrad
+
+STATUS: Entwurf zur Abstimmung. Noch nicht verbindlich.
+Die verbindliche Spezifikation legt der Besitzer fest.
+
+ERPROBT: Der Compiler `scripts/vmfs5_compile.py` ist gebaut und am
+2026-10-01 verifiziert: vbsp EXIT 0, vvis EXIT 0, vrad EXIT 0,
+BSP 942 032 Bytes, Wire-Format 1:1 wie in map_ref.vmf.
+
+AD-HOC-VERIFIKATION (frischer Lauf 2026-10-01, 44/44 bestanden, Skript-Exit 0):
+- test_floor_button_door.vms -> 7 Entities, 2 Wires, alle 3 Tools EXIT 0
+- Roundtrip map_ref.vmf -> .vms -> .vmf -> alle 3 Tools EXIT 0, 723 kB BSP
+- Entities-only: Huelle automatisch um die Entity-Origins gelegt
+  (_bounds_of, Padding 64 nach allen Seiten). Sonst "Entity ... leaked!"
+  -> keine .prt -> vvis EXIT 1.
+- GUI beide Richtungen + alle Fehlerfaelle; Legacy 3.0 laeuft weiter.
+
+
+======================================================================
+1. KERNUNTERSCHIED P1 -> P2
+======================================================================
+
+P1 (Half-Life-2-Engine):
+  Ein Button ist ein Entity-Zoo aus prop_static + prop_dynamic +
+  mehreren trigger_-Entities + logic_-Steuerung + Licht + Sound.
+
+P2 (eigene Engine):
+  Ein Button ist EINE Entity und EIN Wire:
+
+    "OnPressed" "Door1\x1bOpen\x1b\x1b0.5\x1b-1"
+
+Das ist der ganze Unterschied, und er ist gewaltig: die Sprache
+wird um Groessenordnungen kleiner.
+
+
+======================================================================
+2. SYNTAXRAHMEN (unveraendert gegenueber 3.0)
+======================================================================
+
+  mapname  = "test_door";
+  material = floor / wall / ceil;
+
+  blockname{ label["text"]; }
+
+  ##  Kurzkommentar
+  ##* ... *##   Langkommentar
+
+  wire["Ziel.Input", "Parameter", delay="0.5"];
+
+Der Block-Syntaxrahmen bleibt 1:1 wie in 3.0.
+Es aendert sich ausschliesslich, was hinter den Bloecken erzeugt wird.
+
+
+======================================================================
+3. ENTITY-REPERTOIRE
+======================================================================
+
+NUR diese Entities (vom Besitzer so festgelegt):
+
+  start   = info_player_start
+  button  = func_button            (Brush-Button, wandmontiert)
+  button  = prop_floor_button      (Bodenbutton, portal_button.mdl)
+  door    = prop_testchamber_door   (Testkammer-Tuer)
+  door    = prop_dynamic           (Tuer mit Animation)
+  door    = func_door              (Brush-Tuer, movedir)
+  cube    = prop_weighted_cube
+  turret  = npc_portal_turret_floor
+  turret  = npc_portal_turret_panelled
+
+  light   = light                  (P2 hat echte Light-Entities)
+  env     = light_environment      (zwingend, sonst ist die Map dunkel)
+
+BEWUSST NICHT enthalten (vom Besitzer ausgeklaert):
+  info_overlay + env_texturetoggle  -> Indikatorlinien, zu kompliziert
+  prop_button                       -> kleine Panel-Buttons, spaeter
+  func_detail                       -> Deko-Brushes, spaeter
+  Material-Zuweisung pro Seite       -> spaeter
+
+
+======================================================================
+4. SYNTAX-DESIGN (Vorschlag)
+======================================================================
+
+4a. Entities
+-----------
+Der Blockname bestimmt die Rolle, ein optionaler type= das konkrete
+Modell.  Positionsangaben sind Pflicht, damit der Compiler nichts raten muss.
+
+  button open_btn["Druecke mich";
+                  type="prop_floor_button";
+                  pos="-228 -340 72";
+                  yaw="0";]
+
+  door   door1["Testkammertuer"; pos="0 2 -64"; yaw="270";]
+
+  cube   cube1["Wuerfel"; pos="-144 -272 83"; yaw="342.5";]
+
+  turret turret1["Turm"; pos="-92 110 64"; yaw="89.5";]
+
+  start  player["Start"; pos="-95 -320 65"; yaw="90";]
+
+4b. Wiring
+----------
+Gegenueber 3.0 AENDERT sich die Bedeutung von delay!
+
+  wire["Ziel.Input", "Parameter", delay="0.5"];
+
+erzeugt das 5-Feld-ESC-Format:
+
+  Feld 1  Ziel-Entity        "Door1"
+  Feld 2  Input              "Open"
+  Feld 3  Parameter          ""      <- der Wert aus Parameter
+  Feld 4  Delay in Sekunden  "0.5"  <- der Wert aus delay=
+  Feld 5  Aufruf-Anzahl      "-1"    (einmalig)
+
+FEHLER IN 3.0 (jetzt behoben):
+  In 3.0 wurde delay in Feld 3 geschrieben. Das ist falsch.
+  Belegt ist es durch map_ref.vmf:
+
+    "OnPressed" "Door2\x1bSetAnimation\x1bOpen\x1b0\x1b-1"
+       Feld 3 = "Open"  -> Parameter (Animationsname)
+       Feld 4 = "0"     -> Delay
+
+  In 3.0 wuerde daraus werden:
+    "Door2\x1bSetAnimation\x1b2\x1b0\x1b-1"   <- Parameter="2", Delay=0
+
+  Warum das in 3.0 nicht auffiel: die Verzoegerung war einfach 0,
+  also "unsichtbar falsch".
+
+4c. Weiterhin benoetigte Verbindungs-Arten
+-------------------------------------------
+Aus door_ref_01 und map_ref.vmf kommen vor:
+
+  OnPressed     Button -> Tuer (SetAnimation Open bzw. Open)
+  OnUnPressed   Button -> Tuer (Close)
+  OnDeploy      Portal/Tuer -> Turret (FireBullet)
+  OnTipped      Turret -> Light (TurnOff)
+
+
+======================================================================
+5. LICHT — DER GRUND FUER "KOMPLETT DUNKEL"
+======================================================================
+
+vbsp erzeugt NIE Lichtmaps. vrad erzeugt sie.
+Ohne vrad ist die Map schwarz, egal wie viele light-Entities sie hat.
+
+Der Compiler soll deshalb IMMER automatisch erzeugen:
+
+  light_environment   origin = Kammer-Mitte, hoch
+                      pitch  = -90
+                      _light = "255 255 255 200"
+
+  fuer jede Kammer zusaetzlich ein bis zwei `light`-Entities.
+
+Beweis aus der Referenz:
+  vbsp EXIT 0, vrad EXIT 0 -> "7 direct lights", lightdata 603 524 bytes
+  Das sind u. a. light1 mit _light "255 255 255 350" und _quadratic_attn 1.
+
+
+======================================================================
+6. KOMPILIER-PIPELINE
+======================================================================
+
+Drei Schritte, in dieser Reihenfolge:
+
+  1. vmfs5_compile.py  .vms -> .vmf
+  2. vbsp -game "C:\...\Portal 2\portal2" name.vmf
+  3. vvis -game "C:\...\Portal 2\portal2" name
+  4. vrad -game "C:\...\...\Portal 2\portal2" name
+
+WICHTIG (am 2026-10-01 nachgewiesen):
+  Die VMF muss im P2-Maps-Ordner liegen, sonst bricht vbsp ab mit
+  "Can't create LogFile" und EXIT 1:
+
+    C:\Program Files (x86)\Steam\steamapps\common\Portal 2\portal2\maps
+
+  Derselbe Effekt tritt auf, wenn der Pfad Leerzeichen enthaelt UND
+  nicht als natives Windows-Format an -game uebergeben wird.
+
+Pfade:
+  vbsp = C:\Program Files (x86)\Steam\steamapps\common\Portal 2\bin\vbsp.exe
+  vvis = C:\Program Files (x86)\Steam\steamapps\common\Portal 2\bin\vvis.exe
+  vrad = C:\Program Files (x86)\Steam\steamapps\common\Portal 2\bin\vrad.exe
+  game = C:\Program Files (x86)\Steam\steamapps\common\Portal 2\portal2
+
+
+=====================================================================
+7b. ZWEI NEUE BLOECKE (2026-10-01, ergaenzt)
+=====================================================================
+
+prop{ name["Deko", pos="x y z", model="models/..."]; }
+        Deko-Prop. Ohne model= nicht baubar (der Compiler meldet es).
+        type="prop_static"   Default: steht, sendet keine Outputs
+        type="prop_dynamic"  beweglich (MinAnimTime/MaxAnimTime)
+
+rotator{ spin["...", pos="x y z", speed="20"]; }
+        func_rotating. Dreht um die Z-Achse, speed in Grad/Sekunde.
+        targetname = Label, damit Wires moeglich sind.
+
+Beide waren noetig, weil der 4.0-Konverter test4.vms sonst einen
+Block "props" erzeugt, den der Compiler nicht kennt ("Unbekannter
+Block: props").
+
+=====================================================================
+7c. 4.0 -> 5.0 KONVERTIEREN
+=====================================================================
+
+    python scripts/vmfs4_to_vms.py alt.vms -o neu.vms
+
+Der Konverter ueberbrueckt die Unterschiede, die 4.0 zu 5.0 trennen:
+
+  4.0                                   5.0
+  ----------------------------------   -------------------------------
+  layout{ axis["x"]; passage["256"] }  layout{ chambers="3", width=... }
+  chamber_00{ sizex=["1024"]; ... }    Kammern werden ZUSAMMENGEFASST
+  pos="512, 256, 64"  (Komma)           pos="512 256 64"  (Leerzeichen)
+  light_01 je Kammer neu                light_01, light_01_02, _03
+  material{ floor["hl2/..."] }          Faellt weg (P1-Materialien)
+  door["door_01"]  (Name im Listwert)   door_01[... pos=...]
+
+NICHT 1:1 und im Ausgabekopf gemeldet:
+  - material{} verworfen: P1-Materialien gibt es in P2 nicht
+  - Tueren ohne pos=: Trennwand-Position wird berechnet
+  - rotator axis=/speed= gehen nicht 1:1 auf func_rotating
+
+Belegt: examples/test4.vms -> test4_converted.vms, dann
+vbsp/vvis/vrad EXIT 0, 1 438 968 Bytes BSP, 10 Entities, 1 Wire
+("OnPressed" -> door_01|Open||0|-1).
+
+======================================================================
+9. GEOMETRIE: layout{} und solid{}
+======================================================================
+
+VMFScript baut KOMPLETTE TESTKAMMERN, nicht nur Entities. Geometrie
+entsteht in zwei Bloecken:
+
+layout{
+  chambers["2", width="512", length="512", height="256",
+           door_width="64", door_height="96", origin="0 0 0"];
+}
+
+  chambers   Anzahl Kammern, hintereinander entlang +Y.
+             "1" = eine Kammer OHNE Durchgang.
+             "0" = gar keine Kammer, nur die solid{}-Bloecke. Das ist der
+             Import-Modus: bei aus einer VMF uebernommener Geometrie
+             wuerde eine zusaetzliche Huelle die Form veraendern.
+  width/length/height   Kammermasse in Hammer-Einheiten (1 Tile = 64).
+  door_width/door_height   Durchgang in der Wand zwischen zwei Kammern.
+  origin                Ursprung der Geometrie.
+
+solid{
+  brush_01["0 0 0", "128 0 128", mat="TILE/WHITE_WALL_TILE003B"];
+}
+
+  Ein einzelner achs-paralleler Brush als x0 y0 z0 / x1 y1 z1.
+  lo/hi duerfen in beliebiger Reihenfolge stehen. mat optional.
+
+Beispiel (examples/test_chamber_two.vms) ergibt 15 Solids, 7 Entities,
+vbsp/vvis/vrad EXIT 0, 350 020 Bytes BSP.
+
+--- Warum zwei Kammern statt einer mit Durchgang ---
+Eine Oeffnung braucht SOLID-Massen auf BEIDEN Seiten. Mit nur einer
+Kammer endet sie im leeren Raum: vbsp bildet kein Portal, schreibt
+keine .prt, jede Entity wird als "leaked" gemeldet und vvis scheitert
+mit EXIT 1. Mit zwei Kammern ist das behoben (belegt: 14 Brushes,
+vbsp/vvis/vrad EXIT 0, 202 824 Bytes BSP, kein "leaked").
+
+--- Warum eine Wand als VIER Brushes und nicht als Panel-Grid ---
+Ein Grid aus 72 einzeln beruehrenden Brushes erzeugt keine durchgehende
+CONTENTS_SOLID-Flaeche am Portal. Deshalb baut wall_with_opening()
+die Wand als vier grosse Brushes: unterhalb, oberhalb, links, rechts
+der Oeffnung. Portal-tauglich und deutlich kleiner.
+
+--- Roundtrip: Geometrie kommt zurueck ---
+func_detail / func_detailwall / func_brush werden als solid{}-Bloecke
+uebersetzt, jede Brush-BBox mit ihrem Material. Belegt an
+door_ref_01.vmf: 48 func_detail -> 48 solid-Zeilen -> 48 Solids mit
+exakt den Panel-Massen der Quelle (x -64..64, y -16..18, z -64..64),
+vbsp EXIT 0. map_ref.vmf hat 49 (48 Wand + 1 Schild/func_brush).
+
+Nicht-achsenparallele Brushes werden zu Quadern vergroessert - fuer
+exakte Formen Hammer benutzen.
+
+--- Materialien (nur belegte, aus den Referenzmaps) ---
+  TILE/WHITE_WALL_TILE003B              Wand-Panels
+  CONCRETE/CONCRETE_MODULAR_FLOOR001C  Boden
+  TILE/OBSERVATION_TILECEILING001A      Decke
+  TOOLS/TOOLSNODRAW                     unsichtbare Seiten
+P2 hat KEINE "WHITE_FLOOR_TILE002B" oder "WHITE_CEILING_TILE003B";
+solche Namen ergeben "Material not found!" und schwarze Flaechen.
+
+
+======================================================================
+10. OFFENE FRAGEN AN DEN BESITZER
+======================================================================
+
+1. Soll `door` per Vorgabe `prop_testchamber_door` sein (P2-Standard,
+   mit Durchgang) oder brauchen wir meistens `func_door` (Brush-Tuer)?
+
+2. Muss der Compiler die Geometrie (Kammern, Wände, Durchgaenge) selbst
+   bauen, oder startet die Sprache rein bei Entities auf einer
+   bereits in Hammer gebauten Geometrie?
+
+   Das ist die wichtigste offene Frage: in door_ref_01 hat der Besitzer
+   48 func_detail-Brushes von Hand gebaut, eine Tuer gesetzt.
+
+3. Soll die Syntax bei pos= "x y z" (Leerzeichen-getrennt, wie in VMF)
+   bleiben, oder lieber pos=[x,y,z]?
+
+4. Wie sollen Delay-Werte geschrieben werden: delay="0.5" wie in der
+   Referenz, oder delay="500ms"?
+
+
+======================================================================
+8. WAS DER COMPILER TATSÄCHLICH MACHT (verifiziert 2026-10-01)
+======================================================================
+
+Aufruf:
+  python vmfs5_compile.py map.vms                  -> map.vmf
+  python vmfs5_compile.py map.vms --testroom       -> + Testkammer
+  python vmfs5_compile.py map.vms --compile        -> + vbsp/vvis/vrad
+
+Beispiel: examples/test_floor_button_door.vms
+
+Ergebnis (real ausgefuehrt):
+  7 Entities, 2 Wires, 6 Solids (Testkammer)
+  vbsp EXIT 0, vvis EXIT 0, vrad EXIT 0
+  test_fbd.bsp 942 032 Bytes
+
+Erzeugte Entities:
+  info_player_start      targetname=player      (setzt den Portalgun daneben)
+  weapon_portalgun       targetname=player_gun
+  light_environment      mit _ambient (verhindert die schwarze Map)
+  light x2               _light "255 255 255 350" / 300
+  prop_testchamber_door  targetname=door1
+  prop_floor_button      targetname=btn
+
+Erzeugte Wires:
+  "OnPressed"   "door1\x1bOpen\x1b\x1b0.5\x1b-1"
+  "OnUnPressed" "door1\x1bClose\x1b\x1b1\x1b-1"
+
+Zwei Fehler, die dabei gefunden und behoben wurden:
+
+1. light_environment braucht laut base.fgd (Zeile 2951) zwingend
+   _ambient und _AmbientScaleHDR. Ohne sie kommt vrad mit
+   "unknown light specifier type -". Ausserdem darf kein "angles"
+   geschrieben werden, weil pitch ein eigener Key ist.
+
+2. Testkammer-Waende mit 64 Einheiten Staerke erzeugen keine
+   gueltigen Portale: vbsp meldet "FindPortalSide: Couldn't find a
+   good match for which brush to assign to a portal" und vvis bricht
+   mit EXIT 1 ab. Mit 8 Einheiten Wandstaerke laufen alle drei
+   Tools mit EXIT 0 durch.
+
+Hinweis fuer echte Maps: bei --testroom ist der Raum
+0..1024 / 0..1024 / 0..512. Ohne --testroom kommen die Positionen
+unveraendert in die VMF und muessen zur Hammer-Geometrie passen.
