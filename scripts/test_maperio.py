@@ -107,9 +107,19 @@ check("Klasse: MaperioGui" in r.stdout, "MaperioGui",
       r.stdout.strip() or r.stderr[-250:])
 
 print("\n9. 3.0-Legacy")
+# -o ist Pflicht. Ohne schreibt vmfs3_compile.py seinen Default-Output
+# <mapname>.vmf ins Repo-Root; test3.vms hat mapname="testchb_01_button",
+# also landete testchb_01_button.vmf im Repo. Das war als Compiler-Output
+# zunaechst committet und kam ueber .gitignore wieder zurueck.
+_v3 = TMP + "_v3.vmf"
 r = run([os.path.join(SC, "vmfs3_compile.py"),
-         os.path.join(REPO, "examples", "test3.vms")])
+          os.path.join(REPO, "examples", "test3.vms"), "-o", _v3])
 check(r.returncode == 0, "vmfs3_compile", (r.stdout or r.stderr)[-140:])
+check(os.path.exists(_v3), "3.0-Output im TMP, nicht im Repo",
+      os.path.dirname(_v3))
+check(not [f for f in os.listdir(REPO) if f.endswith(".vmf")],
+      "keine .vmf im Repo-Root nach 3.0-Compile",
+      [f for f in os.listdir(REPO) if f.endswith(".vmf")])
 
 print("\n10. Portal-2-Pipeline")
 for tool in ("vbsp", "vvis", "vrad"):
