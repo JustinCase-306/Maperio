@@ -70,9 +70,10 @@ NUR diese Entities (vom Besitzer so festgelegt):
   start   = info_player_start
   button  = func_button            (Brush-Button, wandmontiert)
   button  = prop_floor_button      (Bodenbutton, portal_button.mdl)
-  door    = prop_testchamber_door   (Testkammer-Tuer)
-  door    = prop_dynamic           (Tuer mit Animation)
-  door    = func_door              (Brush-Tuer, movedir)
+  door    = prop_testchamber_door   (Testkammer-Tuer, Vorgabe)
+  door    = prop_dynamic           (Prop mit Animation)
+  door    = func_door              (Brush-Tuer, linear: movedir)
+  door    = func_door_rotating     (Brush-Tuer, dreht: axis/angle)
   cube    = prop_weighted_cube
   turret  = npc_portal_turret_floor
   turret  = npc_portal_turret_panelled
@@ -301,24 +302,52 @@ solche Namen ergeben "Material not found!" und schwarze Flaechen.
 
 
 ======================================================================
-10. OFFENE FRAGEN AN DEN BESITZER
+10. ENTSCHEIDUNGEN DES BESITZERS (2026-10-05, alle vier beantwortet)
 ======================================================================
 
-1. Soll `door` per Vorgabe `prop_testchamber_door` sein (P2-Standard,
-   mit Durchgang) oder brauchen wir meistens `func_door` (Brush-Tuer)?
+1. Tuervorgabe: `prop_testchamber_door`. Begruendung des Besitzers:
+   func_door ist "etwas kompliziertere Entitaet" und im Grunde nur da,
+   um Brushes beweglich zu machen.
 
-2. Muss der Compiler die Geometrie (Kammern, Wände, Durchgaenge) selbst
-   bauen, oder startet die Sprache rein bei Entities auf einer
-   bereits in Hammer gebauten Geometrie?
+   Heisst nicht, dass func_dor rausfliegt - es ist der lineare Fall:
 
-   Das ist die wichtigste offene Frage: in door_ref_01 hat der Besitzer
-   48 func_detail-Brushes von Hand gebaut, eine Tuer gesetzt.
+     door spin1["Drehtuer", type="func_door_rotating",
+           pos="256 350 0", axis="0 0 1", angle="90", speed="60"];
 
-3. Soll die Syntax bei pos= "x y z" (Leerzeichen-getrennt, wie in VMF)
-   bleiben, oder lieber pos=[x,y,z]?
+   Die drei Typen und ihre Keys (verifiziert, vbsp/vvis/vrad EXIT 0):
 
-4. Wie sollen Delay-Werte geschrieben werden: delay="0.5" wie in der
-   Referenz, oder delay="500ms"?
+     prop_testchamber_door   P2-Standard, Durchgang. Kein extra Key.
+     func_door               faehrt linear:      movedir, speed
+     func_door_rotating      dreht um eine Achse: axis, angle, speed,
+                             objectname
+
+   func_door und func_door_rotating sind ZWEI Entities, nicht eine mit
+   zwei Modi: Valve setzt ein Rotating-Prop per Output direkt auf
+   "Open" - "linear 1" auf einer rotierenden Entity bewegt nichts.
+
+2. Geometrie: der Compiler kann BEIDES, das war nie eine Entweder-oder.
+
+     layout{ chambers["2", ...]; }   baut die Kammern selbst
+     layout{ solid{ ... } chambers["0"]; }   importiert Hammer-Brushes
+
+   chambers="0" heisst Import-Modus: nur solid{} Bloecke, KEINE zusaetzliche
+   Kammer, weil die die Form veraendern wuerde. Damit laesst sich eine
+   in Hammer gebaute Map (door_ref_01, map_ref) 1:1 zurueckuebersetzen.
+
+3. pos= bleibt "x y z" mit Leerzeichen, wie in VMF. Wurde nie in Frage
+   gestellt - alle Beispiele und die Referenzmaps schreiben es so.
+
+4. delay= bleibt "0.5" in Sekunden, wie in map_ref.vmf
+   ("Door1<ESC>Open<ESC><ESC>0.5<ESC>-1"). Keine "500ms"-Schreibweise.
+
+Zusaetzlich entschieden und implementiert:
+
+5. Kommentare: `##` wie bisher (Zeilenende und `##* ... *##` als Block)
+   PLUS `//` am Zeilenanfang einer Zeile. `//` wurde gebraucht, weil
+   `##` in einem mehrzeiligen Block-Argument leicht versehentlich mitten
+   im Argument mitgefressen wird. Beispiele: examples/test_door_types.vms
+
+Die Sektion ist damit geschlossen. Neue Fragen ergeben sich aus der Praxis.
 
 
 ======================================================================

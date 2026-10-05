@@ -260,8 +260,69 @@ for _f in sorted(os.listdir(REPO)):
         except OSError:
             pass
 _left = [f for f in os.listdir(MAPS) if f.startswith(_prefix)]
-print("\n16. Aufraeumen")
+print("\n17. Aufraeumen")
 check(not _left, "keine Reste im P2-Maps-Ordner", _left)
+
+print("\n16. Alle drei Tuer-Typen")
+_door_vms = os.path.join(REPO, "examples", "test_door_types.vms")
+_door_vmf = TMP + "_doors.vmf"
+if os.path.exists(_door_vms):
+    _r = run([os.path.join(SC, "map5_compile.py"), _door_vms, "-o", _door_vmf])
+    _out = _r.stdout + _r.stderr
+    check(_r.returncode == 0, "test_door_types.vms kompiliert",
+          _out.strip()[-140:])
+    if os.path.exists(_door_vmf):
+        _body = open(_door_vmf, encoding="utf-8", errors="replace").read()
+        # Die drei Typen muessen getrennt vorhanden sein
+        for _cls, _keys in (
+                ("prop_testchamber_door", None),
+                ("func_door", ("movedir", "speed")),
+                ("func_door_rotating", ("axis", "angle", "speed",
+                                        "objectname"))):
+            _tag = '"classname" "%s"' % _cls
+            _present = _tag in _body
+            check(_present, "%s vorhanden" % _cls)
+            if _present and _keys:
+                # Der Block der Entity, nicht die ganze Datei
+                _i = _body.index(_tag)
+                _blk = _body[_i:_body.index("\n\t}", _i)]
+                for _k in _keys:
+                    check('"%s"' % _k in _blk,
+                          "  %s hat %s" % (_cls, _k))
+        # Der entscheidende Punkt: func_door darf KEIN axis haben und
+        # func_door_rotating darf KEIN movedir - sonst waeren es dieselbe
+        # Entity und der Rotating-Typ waere wirkungslos.
+        _i = _body.index('"classname" "func_door"\n')
+        _blk = _body[_i:_body.index("\n\t}", _i)]
+        check('"axis"' not in _blk, "func_door hat KEIN axis (linear)")
+        check('"objectname"' not in _blk, "func_door hat KEIN objectname")
+        _i = _body.index('"classname" "func_door_rotating"\n')
+        _blk = _body[_i:_body.index("\n\t}", _i)]
+        check('"movedir"' not in _blk,
+              "func_door_rotating hat KEIN movedir (dreht)")
+        # Wires
+        check(_body.count("OnPressed") == 3, "3 Wires verdrahtet",
+              _body.count("OnPressed"))
+
+        # Und durch die echte Pipeline. TMP liegt bereits im
+        # P2-Maps-Ordner - kein Kopieren noetig (das waere ein
+        # SameFileError), vbsp braucht nur den Kurznamen ohne .vmf.
+        _stem = os.path.basename(_door_vmf)[:-4]
+        for _tool in ("vbsp", "vvis", "vrad"):
+            _p = subprocess.run(
+                [os.path.join(BIN, _tool + ".exe"), "-game", GAME, _stem],
+                cwd=MAPS, capture_output=True, text=True, errors="replace")
+            check(_p.returncode == 0, "%s auf der Tuer-Map exit 0" % _tool,
+                  "EXIT=%d" % _p.returncode)
+        _log = os.path.join(MAPS, _stem + ".log")
+        if os.path.exists(_log):
+            _txt = open(_log, encoding="utf-8", errors="replace").read().lower()
+            check("leaked" not in _txt, "kein leaked auf der Tuer-Map")
+            check("no visible sides" not in _txt,
+                  "kein 'no visible sides' auf der Tuer-Map")
+else:
+    check(False, "examples/test_door_types.vms vorhanden")
+
 
 print("\n%d fehlgeschlagen" % len(fails))
 for x in fails:
