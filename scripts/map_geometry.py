@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""vmfs_geometry.py - Geometrie-Engine fuer VMFScript 5.0 (Portal 2).
+"""map_geometry.py - Geometrie-Engine fuer VMFScript 5.0 (Portal 2).
 
 Erzeugt echte Portal-2-Testkammer-Geometrie: Boden, Decke, Seitenwaende und
 ein Wand-Panel mit Durchgang (Tuer).

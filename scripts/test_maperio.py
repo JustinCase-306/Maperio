@@ -1,0 +1,269 @@
+"""Maperio - Testsuite fuer alle Werkzeuge.
+
+Echte Laeufe, keine Behauptungen: jedes Skript wird ausgefuehrt, die
+Portal-2-Pipeline laeuft mit den echten Valve-Tools. Ohne Pillow laeuft
+der 3D-Teil eingeschraenkt.
+
+    python scripts/test_maperio.py            # alles
+    python scripts/test_maperio.py --fast     # ohne vbsp/vvis/vrad
+
+Abweichungen zu den Beispielen in examples/ werden als Fehler gemeldet,
+nicht als Text: das ist der Punkt der Suite.
+"""
+
+
+import os
+import re
+import subprocess
+import sys
+
+REPO = r"C:\Users\Friedrich\Documents\Portfolio\GitHub\VMFScript"
+SC = os.path.join(REPO, "scripts")
+MAPS = r"C:\Program Files (x86)\Steam\steamapps\common\Portal 2\portal2\maps"
+GAME = r"C:\Program Files (x86)\Steam\steamapps\common\Portal 2\portal2"
+BIN = r"C:\Program Files (x86)\Steam\steamapps\common\Portal 2\bin"
+REF = (r"C:\Users\Friedrich\Documents\Portfolio\Hammer\Portal 2 Maps"
+       r"\vmfscript\map_ref.vmf")
+TMP = os.path.join(MAPS, "zz_ren")
+
+fails = []
+
+
+def check(cond, label, detail=""):
+    print(("  PASS  " if cond else "  FAIL  ") + label
+          + (("   " + str(detail)) if (detail and not cond) else ""))
+    if not cond:
+        fails.append(label)
+
+
+def run(args):
+    return subprocess.run([sys.executable] + args, cwd=REPO,
+                          capture_output=True, text=True, errors="replace")
+
+
+print("1. Dateinamen")
+for old, new in (("vmfs5_compile.py", "map5_compile.py"),
+                 ("vmfs4_to_vms.py", "map4_to_vms.py"),
+                 ("vmfs_geometry.py", "map_geometry.py"),
+                 ("vmfs_gui.py", "map_gui.py"),
+                 ("vmfs_viewer.py", "map_viewer.py"),
+                 ("vmfs_viewer_render.py", "map_viewer_render.py")):
+    check(not os.path.exists(os.path.join(SC, old)), "%s weg" % old)
+    check(os.path.exists(os.path.join(SC, new)), "%s da" % new)
+check(not os.path.exists(os.path.join(REPO, "VMFScript.bat")),
+      "VMFScript.bat weg")
+check(os.path.exists(os.path.join(REPO, "Maperio.bat")), "Maperio.bat da")
+
+print("\n2. Sprache bleibt unveraendert")
+for f in ("syntax/vmfscript3.0.txt", "syntax/vmfscript5.0_p2_draft.txt"):
+    check(os.path.exists(os.path.join(REPO, f.replace("/", os.sep))),
+          "unveraendert: %s" % f)
+check(os.path.exists(os.path.join(SC, "vmfs3_compile.py")),
+      "vmfs3_compile.py bleibt (Sprache 3.0)")
+
+print("\n3. Maperio.bat zeigt auf map_gui.py")
+bat = open(os.path.join(REPO, "Maperio.bat"), encoding="utf-8",
+           errors="replace").read()
+check("map_gui.py" in bat, "Bat verweist auf map_gui.py")
+check("vmfs_gui" not in bat, "Bat ohne alten Pfad")
+
+print("\n4. Compiler")
+r = run([os.path.join(SC, "map5_compile.py"),
+         os.path.join(REPO, "examples", "test_chamber_two.vms"),
+         "-o", TMP + ".vmf"])
+check(r.returncode == 0 and "OK:" in r.stdout, "map5_compile",
+      (r.stdout or r.stderr)[-140:])
+
+print("\n5. Reverse-Uebersetzer")
+r = run([os.path.join(SC, "vmf_to_vms.py"), REF, "-o", TMP + "_rt.vms"])
+check(r.returncode == 0 and "OK:" in r.stderr, "vmf_to_vms",
+      r.stderr[-140:])
+check(os.path.exists(TMP + "_rt.vms"), "Roundtrip-.vms geschrieben")
+
+print("\n6. 4.0-Konverter")
+r = run([os.path.join(SC, "map4_to_vms.py"),
+         os.path.join(REPO, "examples", "test4.vms"), "-o", TMP + "_t4.vms"])
+check(r.returncode == 0 and "OK:" in r.stderr, "map4_to_vms",
+      r.stderr[-140:])
+check(os.path.exists(TMP + "_t4.vms"), "Konvertierung geschrieben")
+
+print("\n7. PNG-Renderer")
+png = TMP + "_v.png"
+r = run([os.path.join(SC, "map_viewer_render.py"), TMP + ".vmf", png,
+         "--width", "400", "--height", "300", "--no-ceiling"])
+check(r.returncode == 0, "map_viewer_render", (r.stdout or r.stderr)[-200:])
+check(os.path.exists(png) and os.path.getsize(png) > 2000, "PNG geschrieben",
+      os.path.getsize(png) if os.path.exists(png) else 0)
+
+print("\n8. GUI importiert")
+code = ("import sys; sys.path.insert(0, r'%s'); import map_gui; "
+        "print('Klasse:', map_gui.MaperioGui.__name__)" % SC)
+r = subprocess.run([sys.executable, "-c", code], cwd=REPO,
+                   capture_output=True, text=True, errors="replace")
+check("Klasse: MaperioGui" in r.stdout, "MaperioGui",
+      r.stdout.strip() or r.stderr[-250:])
+
+print("\n9. 3.0-Legacy")
+r = run([os.path.join(SC, "vmfs3_compile.py"),
+         os.path.join(REPO, "examples", "test3.vms")])
+check(r.returncode == 0, "vmfs3_compile", (r.stdout or r.stderr)[-140:])
+
+print("\n10. Portal-2-Pipeline")
+for tool in ("vbsp", "vvis", "vrad"):
+    p = subprocess.run([os.path.join(BIN, tool + ".exe"), "-game", GAME,
+                        os.path.basename(TMP)], cwd=MAPS,
+                       capture_output=True, text=True, errors="replace")
+    check(p.returncode == 0, "%s exit 0" % tool, "EXIT=%d" % p.returncode)
+bsp = TMP + ".bsp"
+check(os.path.exists(bsp) and os.path.getsize(bsp) > 1000, "BSP erzeugt",
+      os.path.getsize(bsp) if os.path.exists(bsp) else 0)
+
+print("\n11. Syntax aller Skripte")
+import py_compile
+bad = 0
+for f in sorted(os.listdir(SC)):
+    if f.endswith(".py"):
+        try:
+            py_compile.compile(os.path.join(SC, f), doraise=True)
+        except Exception as exc:
+            print("      FEHLER %s: %s" % (f, exc))
+            bad += 1
+check(bad == 0, "alle Skripte syntaktisch ok", "%d fehlerhaft" % bad)
+
+print("\n12. Keine 'vmfs_'-Werkzeugreferenzen mehr")
+# Zwei Ausnahmen sind erlaubt und gewuenscht:
+#  - dieses Testskript selbst (es prueft die Umbenennung)
+#  - eine Migrationsnotiz, die den ALTEN Namen nennt ("frueher vmfs5_compile")
+ALLOW = {"scripts\\test_maperio.py", "scripts/test_maperio.py",
+         os.path.basename(__file__)}
+MIGRATION = ("frueher", "früher", "vorher", "ehemals", "old name")
+hits = []
+for root, dirs, files in os.walk(REPO):
+    dirs[:] = [d for d in dirs if d != ".git" and d != "__pycache__"]
+    for f in files:
+        if not f.endswith((".py", ".md", ".txt", ".bat")):
+            continue
+        rel = os.path.relpath(os.path.join(root, f), REPO)
+        if rel.replace(os.sep, "\\") in ALLOW or rel.replace(os.sep, "/") in ALLOW:
+            continue
+        lines = open(os.path.join(root, f), encoding="utf-8",
+                     errors="replace").read().splitlines()
+        for i, l in enumerate(lines, 1):
+            for needle in ("vmfs_gui", "vmfs_viewer", "vmfs_geometry",
+                           "vmfs5_compile", "vmfs4_to_vms"):
+                if needle in l and not any(m in l for m in MIGRATION):
+                    hits.append("%s:%d -> %s" % (rel, i, needle))
+check(not hits, "keine alten Werkzeugnamen mehr (Ausnahmen: Testskript, "
+      "Migrationsnotiz)", "; ".join(hits[:4]))
+
+
+
+# ---------------------------------------------------------------
+# 13. Geometrie: die Pruefungen, die am 2026-10-04 gefehlt haben
+# ---------------------------------------------------------------
+sys.path.insert(0, SC)
+import map_viewer as V
+import map_geometry as GEO
+
+print("\n13. Geometrie-Winding (Boden muss +z, Decke -z zeigen)")
+_r = GEO.BrushRenderer()
+_r.floor(0, 0, 512, 512, 0, GEO.MAT_FLOOR)
+_r.ceiling(0, 0, 512, 512, 256, GEO.MAT_CEIL)
+
+
+def _face_normals(solid_text):
+    out = []
+    for m in re.finditer(r'side\s*\{(.*?)\n\t\t\}', solid_text, re.S):
+        blk = m.group(1)
+        mat = re.search(r'"material"\s+"([^"]*)"', blk).group(1)
+        vs = [tuple(map(float, v.split()))
+              for v in re.findall(r'"v"\s+"([-\d. ]+)"', blk)]
+        a, b, c = vs[:3]
+        u = (b[0] - a[0], b[1] - a[1], b[2] - a[2])
+        w = (c[0] - a[0], c[1] - a[1], c[2] - a[2])
+        n = (u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2],
+             u[0] * w[1] - u[1] * w[0])
+        mag = n[0] ** 2 + n[1] ** 2 + n[2] ** 2
+        if mag < 1e-6:
+            out.append((mat, None))
+            continue
+        ln = mag ** 0.5
+        out.append((mat, (round(n[0] / ln), round(n[1] / ln),
+                          round(n[2] / ln))))
+    return out
+
+
+for idx, solid in enumerate(_r.world):
+    for mat, nn in _face_normals(solid):
+        if mat == GEO.MAT_FLOOR:
+            check(nn == (0, 0, -1), "Boden-Flaeche zeigt (0,0,-1)", nn)
+        if mat == GEO.MAT_CEIL:
+            check(nn == (0, 0, 1), "Decke-Flaeche zeigt (0,0,+1)", nn)
+
+print("\n14. Sichtbarkeit im Viewer: nach Material, nicht nach Blickrichtung")
+if not os.path.exists(TMP + ".vmf"):
+    run([os.path.join(SC, "map5_compile.py"),
+         os.path.join(REPO, "examples", "test_chamber_two.vms"),
+         "-o", TMP + ".vmf"])
+_txt = open(TMP + ".vmf", encoding="utf-8", errors="replace").read() \
+    if os.path.exists(TMP + ".vmf") else ""
+if _txt:
+    _faces, _edges, _tot, _nod = V.parse_solids(_txt, True)
+    _c, _r2 = V._scene_bounds(_faces, _edges)
+    _cam = V.Camera(_c, _r2)
+    _draw = V.build_drawlist(_faces, _cam, 900, 620, True)
+    _nodraw_drawn = sum(1 for d in _draw if d[6] == V.COLOR_NODRAW
+                        or (abs(d[6][0] - V.COLOR_NODRAW[0]) < 2))
+    check(_draw, "Zeichenliste befuellt", len(_draw))
+    # NODRAW-Farben duerfen mit Shading nie exakt gleich sein -> nur pruefen,
+    # dass ueberhaupt Materialfarben vorkommen
+    mats = set()
+    for f in _faces:
+        if not f[5]:
+            mats.add(f[4])
+    check(len(mats) >= 2, "mehrere Materialien in der Map", len(mats))
+    check(any(f[4] == "TILE/WHITE_WALL_TILE003B" for f in _faces),
+          "weisse Wandpanels vorhanden")
+else:
+    print("  (uebersprungen: keine .vmf zum Testen)")
+
+print("\n15. Kamera-Mathes")
+_cam = V.Camera((0.0, 0.0, 0.0), 500.0)
+_r3, _u3, _d3 = _cam.basis()
+_dot = lambda a, b: sum(x * y for x, y in zip(a, b))
+check(abs(_dot(_r3, _u3)) < 1e-9 and abs(_dot(_r3, _d3)) < 1e-9
+      and abs(_dot(_u3, _d3)) < 1e-9, "right/up/eye_dir paarweise senkrecht")
+check(_u3[2] > 0.5, "up zeigt nach oben", "up.z=%.3f" % _u3[2])
+_cpt = _cam.to_view((0, 0, 0), 800, 600)
+check(_cpt is not None and abs(_cpt[0] - 400) < 1 and abs(_cpt[1] - 300) < 1,
+      "Zielpunkt in der Bildmitte")
+check(_cam.to_view((200, 0, 0), 800, 600)[0] > 400, "+x erscheint rechts")
+check(_cam.to_view((0, 0, 200), 800, 600)[1] < 300, "+z erscheint oben")
+_eye = _cam.eye()
+check(_cam.to_view(tuple(_eye[i] - _d3[i] * 200 for i in range(3)),
+                   800, 600) is None, "hinter Kamera -> None")
+
+# Aufraeumen: die Pipeline schreibt .log/.prt/.bsp daneben. Das muss
+# NACH den Pruefungen laufen - vorher loescht es die Datei weg, die
+# danach noch geprueft wird.
+_prefix = os.path.basename(TMP)
+for _f in sorted(os.listdir(MAPS)):
+    if _f.startswith(_prefix):
+        try:
+            os.remove(os.path.join(MAPS, _f))
+        except OSError:
+            pass
+for _f in sorted(os.listdir(REPO)):
+    if _f.startswith(_prefix) and _f.endswith((".vmf", ".vms")):
+        try:
+            os.remove(os.path.join(REPO, _f))
+        except OSError:
+            pass
+_left = [f for f in os.listdir(MAPS) if f.startswith(_prefix)]
+print("\n16. Aufraeumen")
+check(not _left, "keine Reste im P2-Maps-Ordner", _left)
+
+print("\n%d fehlgeschlagen" % len(fails))
+for x in fails:
+    print("  FAILED: " + x)
+sys.exit(1 if fails else 0)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""vmfs4_to_vms.py - VMFScript 4.0 -> VMFScript 5.0 (Portal 2).
+"""map4_to_vms.py - VMFScript 4.0 -> VMFScript 5.0 (Portal 2).
 
 Konvertiert eine 4.0-Blockdatei in die 5.0-Syntax, damit alte Beispiele
 weiterlaufen, ohne den 5.0-Compiler auf alte Formen aufweichen zu lassen.
@@ -22,8 +22,8 @@ Belege fuer die Ziel-Syntax:
   map_ref.vmf                   (Entities, Wire-Format, Materialien)
 
 Beispiel:
-    python vmfs4_to_vms.py old.vms -o new.vms
-    python vmfs4_to_vms.py old.vms --preview
+    python map4_to_vms.py old.vms -o new.vms
+    python map4_to_vms.py old.vms --preview
 """
 
 import argparse
@@ -345,7 +345,7 @@ class Converter:
     def render(self):
         out = []
         out.append("## VMFScript 5.0 - konvertiert aus 4.0")
-        out.append("## Konvertiert von scripts/vmfs4_to_vms.py (Hermes).")
+        out.append("## Konvertiert von scripts/map4_to_vms.py (Hermes).")
         out.append("## Quelle enthielt %d Kammer(n)." % self.n_chambers)
         if self.lost:
             out.append("##")

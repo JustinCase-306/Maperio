@@ -1,23 +1,23 @@
 @echo off
 REM ============================================================
-REM  VMFScript 5.0 - Starter fuer Portal 2
+REM  Maperio - VMFScript 5.0 (Portal 2)
 REM  Doppelklick startet die grafische Oberflaeche.
 REM ============================================================
 setlocal
 cd /d "%~dp0"
 
 REM GUI liegt im scripts-Ordner, nicht im Wurzelordner.
-set "GUI=%~dp0scripts\vmfs_gui.py"
+set "GUI=%~dp0scripts\map_gui.py"
 
 if not exist "%GUI%" (
-    echo FEHLER: vmfs_gui.py nicht gefunden.
+    echo FEHLER: map_gui.py nicht gefunden.
     echo Erwartet: "%GUI%"
     echo.
     pause
     exit /b 1
 )
 
-echo VMFScript 5.0 wird gestartet ...
+echo Maperio wird gestartet ...
 echo.
 
 REM Python suchen: erst mit tkinter pruefen, sonst ist das Fenster tot.
@@ -40,7 +40,7 @@ REM Kein fest verdrahtetes Python: im PATH suchen (mit tkinter-Test).
 for %%C in (python python3 py) do (
     for /f "delims=" %%R in ('where %%C 2^>nul') do (
         if not defined PY (
-            %%R -c "import tkinter" >nul 2>&1 && set "PY=%%R"
+            %%R -c "import tkinter" >nul 2>&1 && set "PY=%%~R"
         )
     )
 )

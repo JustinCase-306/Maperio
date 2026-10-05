@@ -2,7 +2,7 @@
 """vmf_to_vms.py - VMF -> VMFScript 5.0 (Portal 2), Rueckrichtung.
 
 Liest eine fertige Portal-2-.vmf und schreibt sie als VMFScript-5.0-Block-
-datei zurueck. Entities-only, passend zu vmfs5_compile.py: Geometrie
+datei zurueck. Entities-only, passend zu map5_compile.py: Geometrie
 (Solids, func_detail) wird bewusst nicht uebersetzt, weil die Sprache
 keine Geometrie beschreibt.
 
@@ -10,7 +10,7 @@ Beispiel:
     python vmf_to_vms.py map_ref.vmf -o map_ref.vms
     python vmf_to_vms.py map_ref.vmf --preview   # nur auf stdout
 
-Umgekehrte Richtung: vmfs5_compile.py (VMS -> VMF).
+Umgekehrte Richtung: map5_compile.py (VMS -> VMF).
 
 Belegte Feld-Belegung der Source-Engine-Verbindung (aus map_ref.vmf):
     Feld 1  Ziel-Entity

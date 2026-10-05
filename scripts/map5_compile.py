@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""vmfs5_compile.py - VMFScript 5.0 -> VMF Compiler (Portal 2).
+"""map5_compile.py - VMFScript 5.0 -> VMF Compiler (Portal 2).
 
 Entwirft Entities fuer die Portal-2-Engine. Entities-only: die Sprache
 setzt Spielobjekte auf eine Geometrie, die im Hammer gebaut wurde.
@@ -21,9 +21,9 @@ Verbindliche Syntax (syntax/vmfscript5.0_p2_draft.txt):
 Kommentare:  ## bis Zeilenende (kurz),  ##* ... *##  (lang, mehrzeilig)
 
 Nutzung:
-    python vmfs5_compile.py map.vms                 # -> map.vmf
-    python vmfs5_compile.py map.vms --compile       # + vbsp/vvis/vrad
-    python vmfs5_compile.py map.vms --testroom      # + minimale Testkammer
+    python map5_compile.py map.vms                 # -> map.vmf
+    python map5_compile.py map.vms --compile       # + vbsp/vvis/vrad
+    python map5_compile.py map.vms --testroom      # + minimale Testkammer
 
 Wichtig: --compile legt die VMF im Portal-2-maps-Ordner ab und laeuft von
 dort. Ausserhalb bricht vbsp mit "Can't create LogFile" und EXIT 1 ab.
@@ -40,7 +40,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 import generate_plain_portal_map as base
-import vmfs_geometry as G
+import map_geometry as G
 
 ESC = chr(27)
 P2_BIN = r"C:\Program Files (x86)\Steam\steamapps\common\Portal 2\bin"
@@ -160,7 +160,7 @@ def parse_blocks(text):
                 "Tipp: Mit 'VMF -> VMFScript' eine VMF zuerst uebersetzen.")
     text = strip_comments(text)
     mn = NAME_RE.search(text)
-    name = mn.group(1) if mn else "vmfs5_map"
+    name = mn.group(1) if mn else "maperio_map"
     blocks = {}
     for m in BLOCK_RE.finditer(text):
         blocks.setdefault(m.group(1).lower(), []).extend(parse_entries(m.group(2)))
@@ -255,7 +255,7 @@ def _bounds_of(ents, pad=64):
 
 
 class Compiler5:
-    def __init__(self, name="vmfs5_map"):
+    def __init__(self, name="maperio_map"):
         self.name = name
         self.ents = []          # dicts: cls, origin, angles, keys, order
         self.wires = []         # (src_lbl, ev, tgt_lbl, meth, param, delay)
