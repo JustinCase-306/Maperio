@@ -1,7 +1,8 @@
-# VMFScript
+# Maperio
 
-A small toolchain that translates the **VMFScript block language** into ready
-**Portal 2** `.vmf` files and back, plus a simple GUI to work with it.
+**Maperio** is a toolchain for the **VMFScript** block language: it translates
+VMFScript into ready **Portal 2** `.vmf` files and back, plus a GUI and a
+3D preview of the brush geometry.
 
 Portal 2 is the target because its engine has real gameplay entities: one
 `func_button` and one connection make a working button-and-door, while
@@ -12,21 +13,35 @@ Portal 1 (Half-Life 2 engine) needs a whole zoo of entities for the same job.
 > (Nous Research), working for the repository owner. The **VMFScript language
 > design** (`syntax/vmfscript3.0.txt` and the 5.0 draft) is the owner's own
 > specification, which the compiler implements one-to-one.
+>
+> **Naming.** *Maperio* is the tool. *VMFScript* is the language it compiles —
+> that name stays, including in `syntax/vmfscript*.txt` and the 3.0 compiler.
 
 ## Quickstart
 
-Double-click **`VMFScript.bat`** for the GUI, or use the command line:
+Double-click **`Maperio.bat`** for the GUI, or use the command line:
 
 ```bash
 # VMFScript -> VMF
-python scripts/vmfs5_compile.py examples/test_floor_button_door.vms
+python scripts/map5_compile.py examples/test_floor_button_door.vms
 
 # VMF -> VMFScript
 python scripts/vmf_to_vms.py some_map.vmf -o some_map.vms
 
 # VMF -> VMF -> BSP (runs vbsp + vvis + vrad)
-python scripts/vmfs5_compile.py examples/test_floor_button_door.vms --compile
+python scripts/map5_compile.py examples/test_floor_button_door.vms --compile
 ```
+
+## Tests
+
+```bash
+python scripts/test_maperio.py
+```
+
+Runs every tool for real and drives the Portal 2 pipeline with the actual
+Valve binaries. 48 checks: file layout, the five tools, `vbsp`/`vvis`/`vrad`
+exit codes, brush winding, viewer visibility and the camera math. It is a
+real run, not a claim — a failing check names the tool and the number.
 
 ## Geometry
 
@@ -72,7 +87,7 @@ brushes grow into boxes — build exact shapes in Hammer.
 
 ## The GUI
 
-`VMFScript.bat` (or `python scripts/vmfs_gui.py`) opens a plain white window
+`Maperio.bat` (or `python scripts/map_gui.py`) opens a plain white window
 with a text editor and buttons:
 
 | Button | What it does |
@@ -83,6 +98,7 @@ with a text editor and buttons:
 | **Speichern / Speichern als…** | Writes the editor content |
 | **Testkammer** | Adds a minimal test chamber as geometry |
 | **Kompilieren** | Runs `vbsp` → `vvis` → `vrad` and reports the result |
+| **3D-Vorschau** | Opens a window with the brush geometry, drawn in white / grey / dark grey |
 
 The log pane at the bottom shows what happened, including which entities could
 not be translated and why.
@@ -169,20 +185,27 @@ map has no lightmaps and stays black. `--compile` handles both for you.
 ## Layout
 
 ```
-VMFScript.bat              # double-click starter for the GUI
+Maperio.bat              # double-click starter for the GUI
 scripts/
-  vmfs_gui.py               # GUI: editor, buttons, log pane
-  vmfs5_compile.py          # VMFScript 5.0 -> VMF (Portal 2)
-  vmf_to_vms.py             # VMF -> VMFScript 5.0 (reverse direction)
-  vmfs3_compile.py          # older 3.0 compiler (Portal 1), kept for reference
+  map_gui.py              # GUI: editor, buttons, log pane, 3D preview button
+  map5_compile.py         # VMFScript 5.0 -> VMF (Portal 2)
+  vmf_to_vms.py           # VMF -> VMFScript 5.0 (reverse direction)
+  map4_to_vms.py          # 4.0 -> 5.0 converter
+  map_geometry.py         # geometry engine: chambers, walls with an opening
+  map_viewer.py           # 3D preview widget (tkinter, orbit camera)
+  map_viewer_render.py    # same image as a PNG, headless - for testing
+  vmfs3_compile.py        # 3.0 compiler (Portal 1), kept as reference
   generate_plain_portal_map.py  # map class: winding, solids, entity(), render()
   portalmap.py / portalmap2.py   # 1.0 / 2.0, kept for reference
 examples/
   test_floor_button_door.vms # 5.0 example: button -> door
+  test_chamber_two.vms      # two chambers joined by a wall with an opening
+  test4.vms / test4_converted.vms  # 4.0 source and its 5.0 conversion
+  map_ref_roundtrip.vms     # geometry round trip of the reference map
   test3.vms                  # 3.0 example
 syntax/
   vmfscript5.0_p2_draft.txt  # 5.0 language draft + verified notes
-  vmfscript3.0.txt           # owner's 3.0 specification
+  vmfscript3.0.txt           # the owner's 3.0 specification
 references/
   p2_map_ref_analysis.md     # analysis of the owner's reference maps
 ```

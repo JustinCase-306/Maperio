@@ -1,11 +1,16 @@
-# VMFScript — Stand 2026-09-30 (Ende der Arbeitssession)
+# Maperio / VMFScript — Stand 2026-09-30 (Ende der Arbeitssession)
+
+> **Naming:** Maperio ist das Werkzeug, VMFScript die Sprache. Der Compiler
+> `scripts/map5_compile.py` (frueher `vmfs5_compile.py`) übersetzt VMFScript
+> 5.0 nach Valve-`.vmf`. Die Sprachdateien in `syntax/` bleiben `vmfscript*`.
 
 Kurze Notiz fuer den naechsten Start. Alles hier ist **belegt** durch
 tatsaechliche Laeufe, nicht behauptet.
 
 ## Worum es geht
 
-VMFScript ist eine eigene Block-Sprache, die in Valve-`.vmf` uebersetzt wird.
+Maperio ist das Werkzeug. VMFScript ist die Block-Sprache, die es in
+Valve-`.vmf` uebersetzt - und zurueck.
 Stand ist **Version 5.0 fuer Portal 2**.
 
 Der Grund fuer den Sprung 3.0 -> 5.0: In Portal 1 (Half-Life-2-Engine) ist ein
@@ -42,7 +47,7 @@ korrekt. Ebenso war meine Behauptung "die func_detail sind nur unsichtbare
 Stuetzen" zu grob: 48 von 288 Flaechen sind sichtbares
 `TILE/WHITE_WALL_TILE003B`, der Rest ist `TOOLS/TOOLSNODRAW`.
 
-### 2. `scripts/vmfs5_compile.py` — geschlossene Huelle im Import-Modus
+### 2. `scripts/map5_compile.py` — geschlossene Huelle im Import-Modus
 
 **Das war der eigentliche Bug.** Bei `chambers="0"` (Import-Modus) baut der
 Compiler die `solid{}`-Brushes als einzelne, nicht geschlossene Bloecke.
@@ -90,9 +95,9 @@ Y −544..800, Z 0..352.
 ### `test4.vms` laeuft wieder — ueber einen Konverter (NEU)
 
 Statt die 4.0-Datei zu loeschen oder den 5.0-Compiler auf alte Formen
-aufweichen zu lassen, gibt es `scripts/vmfs4_to_vms.py`:
+aufweichen zu lassen, gibt es `scripts/map4_to_vms.py`:
 
-    python scripts/vmfs4_to_vms.py examples/test4.vms -o examples/test4_converted.vms
+    python scripts/map4_to_vms.py examples/test4.vms -o examples/test4_converted.vms
 
 Ueberbrueckt: Komma-Positionen -> Leerzeichen, `chamber_00/01/02` werden zu
 einem `layout{chambers="3", ...}`, Labels werden pro Kammer eindeutig
@@ -147,7 +152,7 @@ prop, rotator, wiring`. Alles andere -> `Unbekannter Block: X`.
 
 ## Offen fuer naechste Sitzung
 
-1. ~~`test4.vms` schlaegt fehl~~ -> **geloest**, siehe `vmfs4_to_vms.py` oben.
+1. ~~`test4.vms` schlaegt fehl~~ -> **geloest**, siehe `map4_to_vms.py` oben.
 2. ~~`vmfs4_compile.py` existiert nicht mehr~~ -> **geloest**, die Syntax wird
    jetzt vom Konverter bedient statt von einem eigenen Compiler.
 3. `test3.vms` ist eine 3.0-Datei (`material`-Block) und wird vom
@@ -162,12 +167,12 @@ prop, rotator, wiring`. Alles andere -> `Unbekannter Block: X`.
    importiert 49 Brushes exakt, aber die sichtbaren Wand-Panels sind
    Einzelflaechen. Ob das in Hammer sauber aussieht, ist ungetestet — dafuer
    braucht es einen Blick in Hammer.
-6. `vmfs_gui.py` und `VMFSCRIPT.bat` kennen die neuen Werkzeuge noch nicht.
+6. `map_gui.py` und `VMFSCRIPT.bat` kennen die neuen Werkzeuge noch nicht.
    Die GUI kann weder 4.0-Dateien konvertieren noch `prop`/`rotator`.
 
 ## Wichtige Pfade
 
-- Compiler: `scripts/vmfs5_compile.py` (5.0, P2)
+- Compiler: `scripts/map5_compile.py` (5.0, P2)
 - Uebersetzer: `scripts/vmf_to_vms.py` (VMF -> VMS)
 - Syntax-Entwurf: `syntax/vmfscript5.0_p2_draft.txt`
 - Referenzmaps: `C:\Users\Friedrich\Documents\Portfolio\Hammer\Portal 2 Maps\vmfscript\map_ref.vmf`, `door_ref_01.vmf`

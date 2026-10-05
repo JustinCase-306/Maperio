@@ -13,7 +13,7 @@ Grundlage:
 STATUS: Entwurf zur Abstimmung. Noch nicht verbindlich.
 Die verbindliche Spezifikation legt der Besitzer fest.
 
-ERPROBT: Der Compiler `scripts/vmfs5_compile.py` ist gebaut und am
+ERPROBT: Der Compiler `scripts/map5_compile.py` ist gebaut und am
 2026-10-01 verifiziert: vbsp EXIT 0, vvis EXIT 0, vrad EXIT 0,
 BSP 942 032 Bytes, Wire-Format 1:1 wie in map_ref.vmf.
 
@@ -173,7 +173,7 @@ Beweis aus der Referenz:
 
 Drei Schritte, in dieser Reihenfolge:
 
-  1. vmfs5_compile.py  .vms -> .vmf
+  1. map5_compile.py  .vms -> .vmf
   2. vbsp -game "C:\...\Portal 2\portal2" name.vmf
   3. vvis -game "C:\...\Portal 2\portal2" name
   4. vrad -game "C:\...\...\Portal 2\portal2" name
@@ -215,7 +215,7 @@ Block: props").
 7c. 4.0 -> 5.0 KONVERTIEREN
 =====================================================================
 
-    python scripts/vmfs4_to_vms.py alt.vms -o neu.vms
+    python scripts/map4_to_vms.py alt.vms -o neu.vms
 
 Der Konverter ueberbrueckt die Unterschiede, die 4.0 zu 5.0 trennen:
 
@@ -326,9 +326,9 @@ solche Namen ergeben "Material not found!" und schwarze Flaechen.
 ======================================================================
 
 Aufruf:
-  python vmfs5_compile.py map.vms                  -> map.vmf
-  python vmfs5_compile.py map.vms --testroom       -> + Testkammer
-  python vmfs5_compile.py map.vms --compile        -> + vbsp/vvis/vrad
+  python map5_compile.py map.vms                  -> map.vmf
+  python map5_compile.py map.vms --testroom       -> + Testkammer
+  python map5_compile.py map.vms --compile        -> + vbsp/vvis/vrad
 
 Beispiel: examples/test_floor_button_door.vms
 
