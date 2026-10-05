@@ -212,6 +212,40 @@ geteilt mit der ersten. Der Import gibt ihr `light6_02` mit `dub="1"`
 und verdrahtet `turret1.OnTipped -> light6_02.TurnOff` — also das
 **einzige Entity**, das Valve zufaellig erreichen kann. Konsequent.
 
+## Wo die Dateien liegen — geklaert 2026-10-05
+
+Es gab drei `map_ref`-Varianten und alle drei hatten einen anderen Namen.
+Die Verwechslung:
+
+| Datei | Ort | Was sie ist |
+|---|---|---|
+| `map_ref.vmf` 172 434 B | Hammer-Ordner | **das Original**, aus `first_map` decompiliert. 73 Entities, 48 `func_detail`, 12 Wires |
+| `map_ref.vmx` | Hammer-Ordner | dieselbe Datei, von Hammer erzeugt |
+| `map_ref.vms` 7 210 B | Hammer-Ordner | **die Rueckuebersetzung** des Originals — 132 Zeilen, 49 Brushes |
+| `map_ref_roundtrip.vms` | `examples/` | dieselbe Rueckuebersetzung, einziger Unterschied: `/` statt `\` im Quellpfad im Header |
+
+**Die committete `map_ref.vmf` im Repo-Root war Compiler-Output.** Nicht
+aus `map_ref.vms` — sie ist byte-identisch (136 566 B) mit dem, was
+`map5_compile.py examples/map_ref_roundtrip.vms` erzeugt. Ein
+132-Zeilen-Skript als Quelle einer 6 881-Zeilen-Map.
+
+Entschieden: **die `.vmf` ist raus.** Sie ist ein Build-Artefakt wie jede
+andere, und sie ist aus einer Datei im Repo voll reproduzierbar. Eine
+Map, deren Quelle nicht im Repo liegt, gehoert nicht ins Repo.
+
+Dazu zwei weitere Altlasten aus den ersten Commits entfernt, beide ohne
+Suite-Abhängigkeit und ohne `.vms`-Quelle:
+
+- `testchb_01_button.vmf` (10 647 B, im Root)
+- `scripts/test4_multi_chamber.vmf` (48 339 B)
+
+`.gitignore` fängt jetzt `/*.vmf`, `/*.vms` und `/examples/*.vmf` ab.
+Im Repo sind nur noch acht `.vms`-Quellen, keine einzige `.vmf`.
+
+Das Original bleibt unangetastet im Hammer-Ordner — es ist die Referenz
+fuer Feature-Umfang, und die Matrix hier beschreibt es. Aber es ist kein
+Teil von Maperio.
+
 ## Konsequenz fuer "ich erstelle Maps"
 
 Damit ist die ehrliche Bilanz: **die Mechanik ist vollstaendig, die

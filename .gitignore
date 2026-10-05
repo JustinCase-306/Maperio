@@ -4,11 +4,13 @@
 *.prt
 *.vmt
 
-# Compiler output next to the .vms source
-/probe_blocks.vmf
-/test_chamber_two.vmf
-/test_floor_button_door.vmf
-/test4_multi_chamber.vmf
+# Compiler-Output neben der .vms-Quelle. VMF-Dateien im Repo-Root sind
+# immer Build-Artefakte: sie entstehen aus examples/*.vms und gehoeren
+# nicht ins Repo. Die Referenzmap liegt getrennt im Hammer-Ordner, ihre
+# Rueckuebersetzung als examples/map_ref_roundtrip.vms.
+/*.vmf
+/*.vms
+/examples/*.vmf
 
 # Python
 __pycache__/
