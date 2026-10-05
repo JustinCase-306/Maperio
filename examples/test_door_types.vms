@@ -1,0 +1,46 @@
+## VMFScript 5.0 - beide Brush-Tuertypen nebeneinander
+##
+## func_door          faehrt linear entlang movedir
+## func_door_rotating dreht sich um eine Achse
+##
+## Es sind zwei verschiedene Entities, nicht eine mit zwei Modi: Valve
+## setzt ein Rotating-Prop per Output direkt auf "Open" - "linear 1" auf
+## einer rotierenden Entity bewegt nichts.
+
+mapname = "test_door_types";
+
+start{
+  player["Start", pos="256 256 64"];
+}
+
+envlight{
+  amb1[pos="256 256 400", power="200", ambient="30"];
+}
+
+##--- Drei Tueren nebeneinander ---
+door{
+  ## P2-Standard: die Testkammer-Tuer mit Durchgang
+  testdoor["Standardtuer", pos="256 8 0", yaw="270"];
+
+  ## Linear: Brush faehrt 160 Einheiten zurueck
+  slide1["Schiebetuer", type="func_door",
+         pos="256 200 0", movedir="0 -160 0", speed="120"];
+
+  ## Dreht sich um die Hochachse
+  spin1["Drehtuer", type="func_door_rotating",
+        pos="256 350 0", axis="0 0 1", angle="90", speed="60"];
+}
+
+##--- Drei Tasten, je eine pro Tuer ---
+button{
+  b1["Taste A", pos="150 256 8"];
+  b2["Taste B", pos="256 256 8"];
+  b3["Taste C", pos="360 256 8"];
+}
+
+## 5-Feld-ESC: Ziel, Input, Parameter, Delay, -1
+wiring{
+  wire["b1.OnPressed", "slide1.Open", delay="0.3"];
+  wire["b2.OnPressed", "spin1.Open", delay="0.3"];
+  wire["b3.OnPressed", "testdoor.Open", delay="0.5"];
+}

@@ -34,6 +34,7 @@ CLASS_MAP = {
     "prop_testchamber_door":    ("door", "door"),
     "prop_dynamic":             ("door", "door"),
     "func_door":                ("door", "door"),
+    "func_door_rotating":       ("door", "door"),
     "prop_floor_button":        ("button", "btn"),
     "prop_button":              ("button", "btn"),
     "func_button":              ("button", "btn"),
@@ -67,6 +68,7 @@ SKIP_CLASSES = {
 WIREABLE_CLASSES = {
     "prop_floor_button", "prop_button", "func_button",
     "prop_testchamber_door", "prop_dynamic", "func_door",
+    "func_door_rotating",
     "prop_weighted_cube", "prop_weighted_cube_button",
     "npc_portal_turret_floor", "npc_portal_turret_panelled",
 }
@@ -76,6 +78,7 @@ TYPE_VALUES = {
     "prop_testchamber_door": "prop_testchamber_door",
     "prop_dynamic": "prop_dynamic",
     "func_door": "func_door",
+    "func_door_rotating": "func_door_rotating",
     "prop_floor_button": "prop_floor_button",
     "prop_button": "prop_button",
     "func_button": "func_button",

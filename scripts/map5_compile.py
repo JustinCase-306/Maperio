@@ -51,14 +51,47 @@ P2_MAPS = os.path.join(P2_GAME, "maps")
 # Parser (Rahmen unveraendert gegenueber 3.0)
 # --------------------------------------------------------------------------
 def strip_comments(text):
+    """Kommentare entfernen: ## ... ## (Block) und // ... (Zeile).
+
+    `//` wurde ergaenzt, weil `##` als Zeilenende-Markierung ungewoehnlich
+    ist und in mehrzeiligen Blocken leicht versehentlich mitten im
+    Argument mitgefressen wird. "//" am Zeilenanfang ist der uebliche
+    Weg und versteht sich von selbst.
+    """
     text = re.sub(r"##\*.*?\*##", "", text, flags=re.S)
     out = []
     for ln in text.splitlines():
         i = ln.find("##")
         if i >= 0:
             ln = ln[:i]
+        # "//" nur wenn es nicht mitten in einem Pfad/URL steht
+        if not ln.lstrip().startswith("#"):
+            j = _slash_comment(ln)
+            if j >= 0:
+                ln = ln[:j]
         out.append(ln)
     return "\n".join(out)
+
+
+def _slash_comment(line):
+    """Position von '//' in line, oder -1 wenn keins."""
+    depth = 0
+    in_str = False
+    for i, ch in enumerate(line):
+        if in_str:
+            if ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        elif ch == "/" and i + 1 < len(line) and line[i + 1] == "/":
+            if depth == 0:
+                return i
+    return -1
 
 
 def split_outside(text, sep=","):
@@ -171,7 +204,8 @@ def parse_blocks(text):
 # Entity-Vorlagen (belegt an map_ref.vmf / door_ref_01.vmf)
 # --------------------------------------------------------------------------
 BUTTON_TYPES = ("prop_floor_button", "prop_button", "func_button")
-DOOR_TYPES = ("prop_testchamber_door", "prop_dynamic", "func_door")
+DOOR_TYPES = ("prop_testchamber_door", "prop_dynamic", "func_door",
+              "func_door_rotating")
 TURRET_TYPES = ("npc_portal_turret_floor", "npc_portal_turret_panelled")
 
 DOOR_MODEL = "models/props_underground/underground_door_dynamic.mdl"
@@ -397,8 +431,19 @@ class Compiler5:
             keys["MaxAnimTime"] = a.get("MaxAnimTime", "10")
             keys["MinAnimTime"] = a.get("MinAnimTime", "5")
         elif typ == "func_door":
+            # func_door faehrt linear entlang movedir. Entity ist der
+            # Brush selbst, nicht das Testkammer-Prop.
             keys["movedir"] = a.get("movedir", "0 0 100")
             keys["speed"] = a.get("speed", "100")
+        elif typ == "func_door_rotating":
+            # func_door_rotating dreht um eine Achse, NICHT entlang
+            # movedir. Wichtig: das sind zwei verschiedene Entities, weil
+            # Valve ein Rotating-Prop per Output direkt auf "Open" setzt -
+            # movedir/linear wuerden hier nichts bewegen.
+            keys["axis"] = a.get("axis", "0 0 1")
+            keys["speed"] = a.get("speed", "100")
+            keys["angle"] = a.get("angle", "90")
+            keys["objectname"] = a.get("objectname", e["label"])
         for k in ("AreaPortalWindow",):
             if k in a:
                 keys[k] = a[k]
