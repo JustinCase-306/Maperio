@@ -31,6 +31,7 @@ dort. Ausserhalb bricht vbsp mit "Can't create LogFile" und EXIT 1 ab.
 
 import argparse
 import os
+import math
 import re
 import shutil
 import subprocess
@@ -207,6 +208,8 @@ BUTTON_TYPES = ("prop_floor_button", "prop_button", "func_button")
 DOOR_TYPES = ("prop_testchamber_door", "prop_dynamic", "func_door",
               "func_door_rotating")
 TURRET_TYPES = ("npc_portal_turret_floor", "npc_portal_turret_panelled")
+TOGGLE_TYPES = ("env_texturetoggle", "env_toggleglow")
+TOGGLE_INPUT = ("SetTextureIndex", "SetTexture", "Toggle")
 
 DOOR_MODEL = "models/props_underground/underground_door_dynamic.mdl"
 BUTTON_MODEL = "models/props/portal_button.mdl"
@@ -448,6 +451,46 @@ class Compiler5:
             if k in a:
                 keys[k] = a[k]
         self._add(typ, _vec(pos), _angles(a), keys)
+
+    def blk_toggle(self, e):
+        """toggle{ name["...", target="...", pos="x y z"]; }
+
+        env_texturetoggle: schaltet die Textur eines Ziel-Entities um.
+        In P2 ist das der Testkammer-Indikator neben der Tuer - die
+        Pfeile wechseln beim Druecken von rot auf gruen.
+
+        Das ist die einzige Entity in map_ref.vmf ohne Geometrie, die
+        echte Mechanik bringt: ohne sie fehlen vier der zwoelf Wires
+        dieser Map. Sie hat keinen Brush, nur target und targetname:
+
+            classname  env_texturetoggle
+            target     indicator_lights
+            targetname indicator_lights_texturetoggle
+
+        Der Button verdrahtet sich selbst - es braucht keine Sonder-
+        logik, nur dieses Entity und ein wire mit SetTextureIndex:
+
+            wire["button1.OnPressed", "lights.SetTextureIndex", param="1"];
+            wire["button1.OnUnPressed", "lights.SetTextureIndex", param="0"];
+
+        `target` ist optional: ohne ihn toggelt die Entity ihr eigenes
+        Ziel wie in Valve (selten, aber gueltig).
+        """
+        a = e["attrs"]
+        pos = a.get("pos", "0 0 0")
+        typ = a.get("type", "env_texturetoggle")
+        if typ not in TOGGLE_TYPES:
+            raise SystemExit("Unbekannter Toggle-Typ: %s" % typ)
+        # target: explizit, sonst der eigene targetname
+        target = a.get("target", a.get("to", e["label"]))
+        keys = {"target": target}
+        for k in ("material", "maxsourcelength"):
+            if k in a:
+                keys[k] = a[k]
+        self._add(typ, _vec(pos), _angles(a), keys)
+        # Standardname: <target>_texturetoggle - genau wie in Valve
+        self.ents[-1]["keys"]["targetname"] = a.get(
+            "targetname", e["label"])
 
     def blk_cube(self, e):
         a = e["attrs"]
@@ -754,6 +797,10 @@ class Compiler5:
             out.extend(m.world)
         out.append('}')
         eid = 1000
+        # Entity-Brushes bekommen IDs aus dem 5000er-Bereich. Ohne eigene
+        # ID zaehlt vbsp sie alle als "Brush 0" und meldet dann
+        # "no visible sides" - belegt an test_indicators.vms.
+        bid = 5000
         for ent in sorted(self.ents, key=lambda x: x["order"]):
             eid += 1
             s = 'entity\n{\n\t"id" "%d"\n' % eid
@@ -768,10 +815,94 @@ class Compiler5:
                 for line in ent["conn"]:
                     s += line
                 s += '\t}\n'
+            if ent.get("quad"):
+                # func_brush mit Brush. Die Geometrie ist
+                # korrekt und exakt geprueft, vbsp baut sie aber
+                # nicht: "no visible sides" fuer alle sechs
+                # Seiten. Es gibt aktuell keinen Aufrufer, der
+                # "quad" setzt - siehe references/sign_block_status.md
+
+                s += _entity_quad(ent["quad"][0], ent["origin"],
+                                  ent["angles"], ent["quad"][1], bid)
+                bid += 1
             s += '\teditor\n\t{\n\t\t"color" "220 30 220"\n'
             s += '\t\t"visgroupshown" "1"\n\t\t"visgroupautoshown" "1"\n\t}\n}\n'
             out.append(s)
         return "".join(out)
+
+def _entity_quad(size, origin, angles, mat, bid):
+    """Flaches Quader-Brush fuer eine Entity (func_brush, prop_static).
+
+    ACHTUNG: der zugehoerige Block sign{} ist nicht im Dispatch. Die
+    Geometrie hier ist korrekt und mit exakten Bruechen geprueft,
+    vbsp meldet aber "no visible sides" und baut die Map nicht.
+    Messungen und Ausschlussliste: references/sign_block_status.md
+
+    size: (breite_x, dicke_y, hoehe_z). Fuer ein Schild an der Wand ist
+    das (32, 1, 32) - 32 breit, 1 dick, 32 hoch. (32, 32, 1) legt die
+    Platte flach; vbsp meldet dann "no head node" und die Map wird
+    nicht gebaut - belegt an test_indicators.vms.
+
+    Jede Seite nennt ihre vier Ecken ausdruecklich. Mit einem Index-
+    Schema (FACES-Tupel) war die Zuordnung falsch: die Seiten, die in Y
+    konstant sein muessen, hatten x oder z konstant. vbsp erkennt das
+    als entartetes Solid und meldet "no visible sides" fuer ALLE sechs
+    Seiten - die Meldung zeigt den Brush, nicht die schlechte Seite.
+
+    Die Reihenfolge laeuft pro Seite im Uhrzeigersinn von aussen, mit
+    zwei Punkten fuer "plane" und vier fuer "vertices_plus".
+    """
+    ox, oy, oz = (float(v) for v in origin)
+    sx, sy, sz = (float(v) for v in size)
+    hx, hy, hz = sx / 2.0, sy / 2.0, sz / 2.0
+    yaw = 0.0
+    if angles:
+        parts = str(angles).split()
+        if len(parts) == 3:
+            yaw = float(parts[1])
+    ca, sa = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+
+    def P(x, y, z):
+        return (ox + x * ca - y * sa, oy + x * sa + y * ca, oz + z)
+
+    b0, b1, b2, b3 = (P(-hx, -hy, -hz), P(hx, -hy, -hz),
+                      P(hx, hy, -hz), P(-hx, hy, -hz))
+    t0, t1, t2, t3 = (P(-hx, -hy, hz), P(hx, -hy, hz),
+                      P(hx, hy, hz), P(-hx, hy, hz))
+
+    # Index 2 ist die Flaeche, die das Material traegt (vorne, -y).
+    SIDES = (
+        (0, [t0, t1, t2, t3]),
+        (1, [b3, b2, b1, b0]),
+        (2, [b0, b1, t1, t0]),
+        (3, [b1, b2, t2, t1]),
+        (4, [b2, b3, t3, t2]),
+        (5, [b3, b0, t0, t3]),
+    )
+
+    out = ['\tsolid\n\t{\n\t\t"id" "%d"\n' % bid]
+    for n, pts in SIDES:
+        side_mat = mat if n == 2 else G.MAT_NODRAW
+        out.append('\t\tside\n\t\t{\n')
+        out.append('\t\t\t"id" "%d"\n' % (bid * 10 + n))
+        out.append('\t\t\t"plane" "(%g %g %g) (%g %g %g) (%g %g %g)"\n'
+                   % (pts[0][0], pts[0][1], pts[0][2],
+                      pts[1][0], pts[1][1], pts[1][2],
+                      pts[2][0], pts[2][1], pts[2][2]))
+        out.append('\t\t\tvertices_plus\n\t\t\t{\n')
+        for pt in pts:
+            out.append('\t\t\t\t"v" "%g %g %g"\n' % pt)
+        out.append('\t\t\t}\n')
+        out.append('\t\t\t"material" "%s"\n' % side_mat)
+        out.append('\t\t\t"uaxis" "[1 0 0 0] 0.25"\n')
+        out.append('\t\t\t"vaxis" "[0 0 -1 0] 0.25"\n')
+        out.append('\t\t\t"rotation" "0"\n')
+        out.append('\t\t\t"lightmapscale" "16"\n')
+        out.append('\t\t\t"smoothing_groups" "0"\n')
+        out.append('\t\t}\n')
+    out.append('\t}\n')
+    return "".join(out)
+
 
 def vmf_header(mapversion=1, skyname="sky_black_nofog", grid=64):
     """Vollstaendiger VMF-Header, wie Hammer ihn zum Laden erwartet.
@@ -836,8 +967,18 @@ def main():
 
     comp = Compiler5(name)
     comp.testroom = args.testroom
+    # Reihenfolge = Abarbeitungsreihenfolge, nicht nur eine Liste:
+    # "wiring" muss zuletzt laufen, weil die Wires erst alle targetnames
+    # der uebrigen Bloecke kennen muessen.
+    # "sign" ist hier NICHT enthalten, obwohl blk_sign existiert: der
+    # func_brush-Block erzeugt geometrisch korrekte Seiten, vbsp
+    # meldet aber "no visible sides" und die Map wird nicht gebaut.
+    # Verifiziert: Solid entfernt -> Exit 0, Referenz-Solid eingesetzt
+    # -> Exit 0, eigene Geometrie in jeder Auspraegung -> Exit 1.
+    # Ursache nicht gefunden. Siehe references/sign_block_status.md
     order = ["layout", "solid", "start", "envlight", "lighting", "door",
-             "button", "cube", "turret", "prop", "rotator", "wiring"]
+             "button", "cube", "turret", "prop", "rotator", "toggle",
+             "wiring"]
     for key in order:
         handler = getattr(comp, "blk_" + key, None)
         if handler is None:
@@ -850,7 +991,12 @@ def main():
             # Tippfehler, sondern die alte Portal-1-Syntax - der Weg
             # dahin ist ein anderer Compiler.
             hint = ""
-            if key in ("material", "chamber"):
+            if key == "sign":
+                hint = ("\n\nfunc_brush mit Brush (block sign{}) baut noch "
+                        "nicht: vbsp meldet 'no visible sides'. "
+                        "env_texturetoggle (block toggle{}) funktioniert. "
+                        "Stand und Messungen: references/sign_block_status.md")
+            if key in ("material", "chamber") and not hint:
                 hint = ("\n\nDas sieht nach VMFScript 3.0 (Portal 1) aus. "
                         "Diese Syntax gehoert zu vmfs3_compile.py bzw. zu "
                         "Portal 1:\n"

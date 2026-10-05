@@ -1,0 +1,59 @@
+## VMFScript 5.0 - Testkammer mit Tuer-Indikatoren
+##
+## Rekonstruiert die Mechanik aus map_ref.vmf: ein Bodenbutton, der
+## die Testkammertuer oeffnet UND dabei zwei Indikatoren umschaltet.
+## Ohne toggle{} ginge das nicht - das sind vier der zwoelf Wires
+## aus der Referenzmap.
+
+mapname = "test_indicators";
+
+start{
+  player["Start", pos="256 256 64"];
+}
+
+envlight{
+  amb1[pos="256 256 400", power="200", ambient="30"];
+}
+
+lighting{
+  light1[pos="256 256 400", power="350"];
+}
+
+##--- Tuer und Indikatoren ---
+door{
+  door1["Testkammertuer", pos="256 512 0", yaw="270"];
+}
+
+## Zwei Indikator-Entities. Ohne Brush, nur target + targetname.
+toggle{
+  lights["Pfeile an der Wand", target="indicator_lights",
+         pos="240 508 128"];
+}
+
+## Das Schild (func_brush mit SIGNAGE_DOORSTATE) fehlt noch - der Block
+## sign{} baut noch nicht, siehe references/sign_block_status.md.
+## Die Indicator-Entities oben sind trotzdem sinnvoll: toggle{} laeuft.
+
+##--- Button ---
+button{
+  button1["Bodenknopf", pos="256 300 8"];
+}
+
+##--- Verdrahtung ---
+##
+## Ein Button, vier Wires. Genau das Muster aus map_ref.vmf:
+## OnPressed + OnUnPressed, je auf Tuer und beide Indikatoren.
+## delay gehoert in Feld 4, nicht in Feld 3.
+wiring{
+  ## Tuer auf / zu
+  wire["button1.OnPressed",   "door1.Open",  delay="0.5"];
+  wire["button1.OnUnPressed", "door1.Close", delay="1"];
+
+  ## Pfeile: Index 1 = gruen, Index 0 = rot
+  wire["button1.OnPressed",   "lights.SetTextureIndex", param="1", delay="0.5"];
+  wire["button1.OnUnPressed", "lights.SetTextureIndex", param="0", delay="1"];
+
+  ## Das Schild-Textur-Target gibt es noch nicht (kein sign{}), deshalb
+  ## kein zweites Toggle. Sobald der Block fertig ist, kommt hier:
+  ##   wire["button1.OnPressed", "sign_toggle.SetTextureIndex", param="1"];
+}

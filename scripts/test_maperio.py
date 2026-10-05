@@ -27,6 +27,9 @@ REF = (r"C:\Users\Friedrich\Documents\Portfolio\Hammer\Portal 2 Maps"
 TMP = os.path.join(MAPS, "zz_ren")
 
 fails = []
+_ORDER = ("layout", "solid", "start", "envlight", "lighting",
+          "door", "button", "cube", "turret", "prop", "rotator",
+          "toggle", "wiring")
 
 
 def check(cond, label, detail=""):
@@ -243,27 +246,52 @@ _eye = _cam.eye()
 check(_cam.to_view(tuple(_eye[i] - _d3[i] * 200 for i in range(3)),
                    800, 600) is None, "hinter Kamera -> None")
 
-# Aufraeumen: die Pipeline schreibt .log/.prt/.bsp daneben. Das muss
-# NACH den Pruefungen laufen - vorher loescht es die Datei weg, die
-# danach noch geprueft wird.
-_prefix = os.path.basename(TMP)
-for _f in sorted(os.listdir(MAPS)):
-    if _f.startswith(_prefix):
-        try:
-            os.remove(os.path.join(MAPS, _f))
-        except OSError:
-            pass
-for _f in sorted(os.listdir(REPO)):
-    if _f.startswith(_prefix) and _f.endswith((".vmf", ".vms")):
-        try:
-            os.remove(os.path.join(REPO, _f))
-        except OSError:
-            pass
-_left = [f for f in os.listdir(MAPS) if f.startswith(_prefix)]
-print("\n17. Aufraeumen")
-check(not _left, "keine Reste im P2-Maps-Ordner", _left)
 
-print("\n16. Alle drei Tuer-Typen")
+
+print("\n16. toggle{} / env_texturetoggle")
+_tog = os.path.join(REPO, "examples", "test_indicators.vms")
+_tog_vmf = TMP + "_tog.vmf"
+_r = run([os.path.join(SC, "map5_compile.py"), _tog, "-o", _tog_vmf])
+_out = _r.stdout + _r.stderr
+check(_r.returncode == 0, "test_indicators.vms kompiliert",
+      _out.strip()[-140:])
+if os.path.exists(_tog_vmf):
+    _body = open(_tog_vmf, encoding="utf-8", errors="replace").read()
+    check('"classname" "env_texturetoggle"' in _body,
+          "env_texturetoggle erzeugt")
+    # target und targetname muessen da sein, ohne target geht der
+    # Toggle ins Leere
+    for _m in re.finditer(r'"classname"\s+"env_texturetoggle"\n(.*?)\n\t\}',
+                         _body, re.S):
+        _blk = _m.group(1)
+        check('"target"' in _blk, "  hat target")
+        check('"targetname"' in _blk, "  hat targetname")
+        check("solid" not in _blk, "  ohne Brush")
+    # Die Indikator-Wires: SetTextureIndex mit param 1 und 0
+    _w = re.findall(r'"(\w+)"\s+"([^"]*\x1b[^"]*)"', _body)
+    _idx = [f for f in _w if "SetTextureIndex" in f[1]]
+    check(len(_idx) >= 2, "SetTextureIndex-Wires vorhanden", len(_idx))
+    _params = set()
+    for _e, _v in _idx:
+        _fields = _v.split("\x1b")
+        if len(_fields) >= 3:
+            _params.add(_fields[2])
+    check(_params == {"0", "1"},
+          "Index 0 und 1 (aus/an)", sorted(_params))
+    # Und die Map muss wirklich bauen
+    _stem = os.path.basename(_tog_vmf)[:-4]
+    for _tool in ("vbsp", "vvis", "vrad"):
+        _p = subprocess.run(
+            [os.path.join(BIN, _tool + ".exe"), "-game", GAME, _stem],
+            cwd=MAPS, capture_output=True, text=True, errors="replace")
+        check(_p.returncode == 0, "%s auf der Toggle-Map exit 0" % _tool,
+              "EXIT=%d" % _p.returncode)
+    _log = os.path.join(MAPS, _stem + ".log")
+    if os.path.exists(_log):
+        _txt = open(_log, encoding="utf-8", errors="replace").read().lower()
+        check("leaked" not in _txt, "kein leaked auf der Toggle-Map")
+
+print("\n17. Alle drei Tuer-Typen")
 _door_vms = os.path.join(REPO, "examples", "test_door_types.vms")
 _door_vmf = TMP + "_doors.vmf"
 if os.path.exists(_door_vms):
@@ -323,6 +351,37 @@ if os.path.exists(_door_vms):
 else:
     check(False, "examples/test_door_types.vms vorhanden")
 
+print("\n18. sign{} / func_brush - dokumentiert nicht fertig")
+check("sign" not in _ORDER, "sign nicht im Block-Dispatch",
+      "sonst bricht jede Map mit sign{} ab")
+# Ein echter Block beginnt in eigener Zeile mit "sign{" - ein
+# Kommentar darf das Wort erwaehnen, das ist der ganze Sinn der
+# Verweis-Zeile im Beispiel.
+_txt2 = open(_tog, encoding="utf-8").read()
+_blocks = [ln for ln in _txt2.splitlines()
+           if ln.strip().startswith("sign{")]
+check(not _blocks, "test_indicators nutzt kein sign{}-Block", _blocks)
+
+# --- Aufraeumen, ganz zum Schluss -------------------------------
+# vbsp schreibt .lin/.log/.prt/.bsp neben die .vmf, alle mit dem
+# TMP-Praefix. Muss NACH den Pruefungen laufen - vorher loescht es
+# die Dateien, die danach noch gebaut werden.
+print("\n19. Aufraeumen")
+_prefix = os.path.basename(TMP)
+for _f in sorted(os.listdir(MAPS)):
+    if _f.startswith(_prefix):
+        try:
+            os.remove(os.path.join(MAPS, _f))
+        except OSError:
+            pass
+for _f in sorted(os.listdir(REPO)):
+    if _f.startswith(_prefix):
+        try:
+            os.remove(os.path.join(REPO, _f))
+        except OSError:
+            pass
+_left = [f for f in os.listdir(MAPS) if f.startswith(_prefix)]
+check(not _left, "keine Reste im P2-Maps-Ordner", _left)
 
 print("\n%d fehlgeschlagen" % len(fails))
 for x in fails:
